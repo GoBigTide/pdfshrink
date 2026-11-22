@@ -1,63 +1,67 @@
 # PDF Shrinker
 
-A tiny, privacy-first PDF tool that runs **entirely in your browser**.
+A privacy-first PDF tool that runs **entirely in your browser**.
 
-- Compress PDFs
+- Reorder individual pages (drag & drop)
+- Rotate pages (90° / 180° / 270°)
+- Normalize every page to **US Letter** size
 - Merge multiple PDFs
-- Reorder documents before merging (drag & drop)
-- Merge + compress in one step
+- Compress (optional)
 
 Your files never leave the device. No server, no account, no tracking.
 
 ## Live use
 
-Just open `index.html` in a modern browser, or host it on GitHub Pages / Netlify / any static host.
+Open `index.html` in a modern browser, or host on GitHub Pages / Netlify / any static host.
 
 ## Features
 
-### Compress
-Renders each page to a canvas, encodes as JPEG at a chosen quality, and rebuilds the PDF.  
-Works especially well on scans, photo-heavy documents, and large decks.
+### Page editing
+- Drop one or more PDFs
+- See a thumbnail for every page
+- Drag pages to put them in any order
+- Rotate any page with the ↺ / ↻ buttons
+- Remove individual pages
+- Everything is forced to **US Letter** (8.5 × 11 in) and centered
 
-**Presets**
+### Export options
+| Button | What it does |
+|--------|----------------|
+| **Merge only** | Lossless. Keeps original quality and selectable text. Pages are scaled & centered onto Letter. |
+| **Compress** | Rasterizes each page (with your rotation + Letter size) as JPEG. Much smaller for scans and image-heavy PDFs. Text becomes non-selectable. |
 
-| Preset    | Approx. DPI | Best for               |
-|-----------|-------------|------------------------|
-| High      | ~150        | Readable text + images |
-| Balanced  | ~120        | Good all-rounder       |
-| Small     | ~96         | Maximum size reduction |
-
-### Merge & Reorder
-- Drop multiple PDFs
-- Drag to reorder the documents
-- **Merge only** → keeps original quality, text stays selectable
-- **Merge & Compress** → combines then shrinks
+### Compression presets
+| Preset       | Approx. DPI | Notes                 |
+|--------------|-------------|-----------------------|
+| High         | ~115        | Best readability      |
+| Balanced     | ~90         | Good all-rounder      |
+| Small        | ~70         | Strong size reduction |
+| Super Small  | ~50         | Maximum shrink        |
 
 ## Deploy to GitHub Pages
 
-1. Create a new repo (e.g. `pdf-shrinker`)
-2. Upload / push the three files in this folder
+1. Create a new repository
+2. Upload the three files (`index.html`, `README.md`, `LICENSE`)
 3. Go to **Settings → Pages**
-4. Set source to the branch containing `index.html` (usually `main`, folder `/`)
-5. After a minute it will be live at  
-   `https://<your-username>.github.io/<repo-name>/`
+4. Source → branch `main` + folder `/ (root)`
+5. Live at `https://<username>.github.io/<repo>/`
 
 ## Tech
 
 - Vanilla HTML / CSS / JS (no build step)
-- [pdf.js](https://mozilla.github.io/pdf.js/) — rendering pages
-- [pdf-lib](https://pdf-lib.js.org/) — merging & building PDFs
+- [pdf.js](https://mozilla.github.io/pdf.js/) — rendering & thumbnails
+- [pdf-lib](https://pdf-lib.js.org/) — merging, rotating, building the final PDF
 
 ## Limitations
 
-- Very large files (>50–80 MB total) can be slow or run out of memory on low-end devices
-- Pure text/vector PDFs may not shrink much (they’re already efficient) — sometimes they even get slightly bigger
-- Compression mode makes text non-selectable (it becomes part of the page image)
-- Merge-only mode keeps text selectable and original quality
+- Very large documents (hundreds of pages or tens of MB) can be slow or memory-heavy
+- Pure text/vector PDFs often don’t shrink much with the Compress path
+- Compression turns text into images (no longer selectable/searchable)
+- “Merge only” keeps text selectable
 
 ## Privacy
 
-Everything runs locally in the browser tab. The only network requests are for the two open-source libraries from a public CDN. Your PDF data is never sent anywhere.
+Everything runs locally in the browser tab. The only network requests are for the two open-source libraries from a public CDN. Your PDF data is never uploaded.
 
 ## License
 

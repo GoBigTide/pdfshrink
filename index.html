@@ -3,22 +3,22 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>PDF Shrinker — Compress & Merge PDFs in your browser</title>
-  <meta name="description" content="Free, private PDF compressor and merger. Shrink and combine PDFs while keeping decent quality. Files never leave your device." />
+  <title>PDF Shrinker — Merge, Reorder, Rotate & Compress</title>
+  <meta name="description" content="Merge, reorder pages, rotate, normalize to Letter size, and compress PDFs entirely in your browser. Files never leave your device." />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📄</text></svg>" />
   <style>
     :root {
       --bg: #0f1117;
       --surface: #1a1d27;
-      --surface-2: #242833;
+      --surface2: #242833;
       --border: #2e3340;
       --text: #e8eaed;
-      --text-muted: #9aa0a6;
-      --accent: #5b8def;
-      --accent-hover: #4a7de0;
-      --success: #34d399;
-      --warning: #fbbf24;
-      --danger: #f87171;
+      --muted: #9aa0a6;
+      --accent: #7c9cff;
+      --accent-hover: #9bb0ff;
+      --success: #3dd68c;
+      --warning: #ffc107;
+      --danger: #ff6b6b;
       --radius: 12px;
     }
 
@@ -28,344 +28,182 @@
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
       background: var(--bg);
       color: var(--text);
-      min-height: 100vh;
       line-height: 1.5;
+      min-height: 100vh;
+      padding: 20px 14px 48px;
     }
 
-    .container {
-      max-width: 640px;
-      margin: 0 auto;
-      padding: 2rem 1.25rem 4rem;
-    }
+    .container { max-width: 960px; margin: 0 auto; }
 
-    header {
-      text-align: center;
-      margin-bottom: 2rem;
-    }
-
-    header h1 {
-      font-size: 1.75rem;
-      font-weight: 700;
-      letter-spacing: -0.02em;
-      margin-bottom: 0.35rem;
-    }
-
-    header p {
-      color: var(--text-muted);
-      font-size: 0.95rem;
-    }
+    header { text-align: center; margin-bottom: 28px; }
+    header h1 { font-size: 1.75rem; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 6px; }
+    header p { color: var(--muted); font-size: 0.95rem; }
 
     .badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.35rem;
-      background: rgba(91, 141, 239, 0.12);
-      color: var(--accent);
-      font-size: 0.75rem;
-      font-weight: 600;
-      padding: 0.25rem 0.65rem;
-      border-radius: 999px;
-      margin-top: 0.75rem;
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(61, 214, 140, 0.12); color: var(--success);
+      font-size: 0.78rem; font-weight: 500;
+      padding: 4px 12px; border-radius: 999px; margin-top: 10px;
     }
 
     /* Drop zone */
     .drop-zone {
-      border: 2px dashed var(--border);
-      border-radius: var(--radius);
-      background: var(--surface);
-      padding: 2rem 1.5rem;
-      text-align: center;
-      cursor: pointer;
-      transition: border-color 0.2s, background 0.2s;
-      position: relative;
+      border: 2px dashed var(--border); border-radius: var(--radius);
+      background: var(--surface); padding: 36px 20px; text-align: center;
+      cursor: pointer; transition: border-color 0.2s, background 0.2s; margin-bottom: 20px;
     }
-
-    .drop-zone:hover,
-    .drop-zone.dragover {
-      border-color: var(--accent);
-      background: rgba(91, 141, 239, 0.06);
+    .drop-zone:hover, .drop-zone.dragover {
+      border-color: var(--accent); background: rgba(124, 156, 255, 0.06);
     }
+    .drop-zone svg { width: 44px; height: 44px; margin-bottom: 10px; opacity: 0.7; }
+    .drop-zone h2 { font-size: 1.1rem; margin-bottom: 4px; }
+    .drop-zone p { color: var(--muted); font-size: 0.9rem; }
+    .drop-zone input { display: none; }
 
-    .drop-zone input[type="file"] {
-      position: absolute;
-      inset: 0;
-      opacity: 0;
-      cursor: pointer;
+    /* Toolbar */
+    .toolbar {
+      display: none; flex-wrap: wrap; gap: 10px; align-items: center;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 12px 16px; margin-bottom: 16px;
     }
+    .toolbar.visible { display: flex; }
+    .toolbar .info { flex: 1; font-size: 0.9rem; color: var(--muted); min-width: 140px; }
+    .toolbar .info strong { color: var(--text); }
 
-    .drop-icon { font-size: 2.25rem; margin-bottom: 0.6rem; }
-    .drop-zone h2 { font-size: 1.05rem; font-weight: 600; margin-bottom: 0.2rem; }
-    .drop-zone p { color: var(--text-muted); font-size: 0.85rem; }
-
-    /* File list */
-    .file-list {
-      display: none;
-      margin-top: 1.25rem;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      overflow: hidden;
+    button {
+      font-family: inherit; font-size: 0.9rem; font-weight: 600;
+      border-radius: 8px; cursor: pointer; border: none;
+      padding: 9px 16px; transition: background 0.15s, opacity 0.15s, border-color 0.15s;
     }
-    .file-list.visible { display: block; }
+    button:disabled { opacity: 0.45; cursor: not-allowed; }
 
-    .file-list-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 0.75rem 1rem;
-      border-bottom: 1px solid var(--border);
-      font-size: 0.8rem;
-      color: var(--text-muted);
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.03em;
-    }
-
-    .file-item {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      padding: 0.85rem 1rem;
-      border-bottom: 1px solid var(--border);
-      background: var(--surface);
-      cursor: grab;
-      transition: background 0.15s;
-      user-select: none;
-    }
-    .file-item:last-child { border-bottom: none; }
-    .file-item:hover { background: var(--surface-2); }
-    .file-item.dragging { opacity: 0.45; background: var(--surface-2); }
-    .file-item.drag-over { border-top: 2px solid var(--accent); }
-
-    .drag-handle {
-      color: var(--text-muted);
-      font-size: 1.1rem;
-      cursor: grab;
-      flex-shrink: 0;
-      line-height: 1;
-    }
-
-    .file-icon {
-      width: 36px;
-      height: 36px;
-      background: rgba(91, 141, 239, 0.15);
-      border-radius: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.1rem;
-      flex-shrink: 0;
-    }
-
-    .file-meta { flex: 1; min-width: 0; }
-    .file-name {
-      font-weight: 600;
-      font-size: 0.9rem;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .file-size { color: var(--text-muted); font-size: 0.78rem; }
-
-    .remove-btn {
-      background: none;
-      border: none;
-      color: var(--text-muted);
-      cursor: pointer;
-      font-size: 1.2rem;
-      padding: 0.2rem 0.35rem;
-      line-height: 1;
-      border-radius: 6px;
-      transition: color 0.15s, background 0.15s;
-    }
-    .remove-btn:hover { color: var(--danger); background: rgba(248,113,113,0.1); }
-
-    .add-more {
-      display: block;
-      width: 100%;
-      padding: 0.7rem;
-      background: none;
-      border: none;
-      border-top: 1px solid var(--border);
-      color: var(--accent);
-      font-size: 0.85rem;
-      font-weight: 600;
-      cursor: pointer;
-      text-align: center;
-    }
-    .add-more:hover { background: rgba(91,141,239,0.08); }
-
-    /* Presets */
-    .presets {
-      display: none;
-      margin-top: 1.5rem;
-    }
-    .presets.visible { display: block; }
-
-    .presets h3 {
-      font-size: 0.8rem;
-      font-weight: 600;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-      margin-bottom: 0.65rem;
-    }
-
-    .preset-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 0.6rem;
-    }
-
-    .preset {
-      background: var(--surface);
-      border: 1.5px solid var(--border);
-      border-radius: 10px;
-      padding: 0.85rem 0.5rem;
-      text-align: center;
-      cursor: pointer;
-      transition: border-color 0.15s, background 0.15s;
-    }
-    .preset:hover { border-color: #4a5568; }
-    .preset.selected {
-      border-color: var(--accent);
-      background: rgba(91, 141, 239, 0.1);
-    }
-    .preset-label { font-weight: 600; font-size: 0.88rem; margin-bottom: 0.1rem; }
-    .preset-desc { font-size: 0.7rem; color: var(--text-muted); line-height: 1.3; }
-
-    /* Actions */
-    .actions {
-      display: none;
-      margin-top: 1.35rem;
-      gap: 0.6rem;
-      flex-direction: column;
-    }
-    .actions.visible { display: flex; }
-
-    .btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.45rem;
-      width: 100%;
-      padding: 0.85rem 1.2rem;
-      font-size: 0.95rem;
-      font-weight: 600;
-      border: none;
-      border-radius: 10px;
-      cursor: pointer;
-      transition: background 0.15s, transform 0.1s;
-    }
-    .btn:active { transform: scale(0.98); }
-    .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-
-    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary { background: var(--accent); color: #0f1117; }
     .btn-primary:hover:not(:disabled) { background: var(--accent-hover); }
 
     .btn-secondary {
-      background: var(--surface-2);
-      color: var(--text);
+      background: var(--surface2); color: var(--text); border: 1px solid var(--border);
     }
-    .btn-secondary:hover:not(:disabled) { background: #2c3140; }
+    .btn-secondary:hover:not(:disabled) { border-color: var(--accent); }
 
-    /* Progress */
-    .progress-wrap {
-      display: none;
-      margin-top: 1.5rem;
+    .btn-ghost {
+      background: transparent; color: var(--muted); border: 1px solid transparent;
+      padding: 7px 12px;
     }
-    .progress-wrap.visible { display: block; }
+    .btn-ghost:hover:not(:disabled) { color: var(--text); background: var(--surface2); }
 
-    .progress-bar {
-      height: 6px;
-      background: var(--surface-2);
-      border-radius: 999px;
-      overflow: hidden;
-      margin-bottom: 0.6rem;
+    .btn-danger-ghost { color: var(--danger); }
+    .btn-danger-ghost:hover:not(:disabled) { background: rgba(255,107,107,0.12); }
+
+    /* Presets */
+    .presets {
+      display: none; gap: 8px; margin-bottom: 16px; flex-wrap: wrap;
     }
-    .progress-fill {
-      height: 100%;
-      background: var(--accent);
-      width: 0%;
-      transition: width 0.25s ease;
-      border-radius: 999px;
+    .presets.visible { display: flex; }
+    .preset {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 8px; padding: 10px 12px; cursor: pointer; text-align: center;
+      min-width: 90px; flex: 1; transition: border-color 0.15s, background 0.15s;
     }
-    .progress-text {
-      font-size: 0.85rem;
-      color: var(--text-muted);
-      text-align: center;
+    .preset:hover { border-color: var(--accent); }
+    .preset.active { border-color: var(--accent); background: rgba(124,156,255,0.12); }
+    .preset .label { font-weight: 600; font-size: 0.88rem; }
+    .preset .desc { font-size: 0.72rem; color: var(--muted); margin-top: 2px; }
+
+    /* Page grid */
+    .page-grid {
+      display: none; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 12px; margin-bottom: 20px;
     }
+    .page-grid.visible { display: grid; }
+
+    .page-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; padding: 8px; cursor: grab; position: relative;
+      transition: border-color 0.15s, box-shadow 0.15s, opacity 0.15s;
+      user-select: none;
+    }
+    .page-card:active { cursor: grabbing; }
+    .page-card.dragging { opacity: 0.4; }
+    .page-card.drag-over { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(124,156,255,0.3); }
+
+    .page-card .thumb-wrap {
+      position: relative; width: 100%; aspect-ratio: 8.5 / 11;
+      background: #fff; border-radius: 4px; overflow: hidden;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .page-card canvas {
+      max-width: 100%; max-height: 100%; display: block;
+    }
+    .page-card .thumb-loading {
+      color: #999; font-size: 0.75rem;
+    }
+
+    .page-card .meta {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-top: 6px; font-size: 0.72rem; color: var(--muted);
+    }
+    .page-card .page-num { font-weight: 600; color: var(--text); }
+
+    .page-card .actions {
+      display: flex; gap: 4px; margin-top: 6px;
+    }
+    .page-card .actions button {
+      flex: 1; padding: 5px 0; font-size: 0.75rem;
+      background: var(--surface2); color: var(--text); border: 1px solid var(--border);
+      border-radius: 6px;
+    }
+    .page-card .actions button:hover { border-color: var(--accent); }
+
+    .page-card .remove-page {
+      position: absolute; top: 4px; right: 4px;
+      width: 22px; height: 22px; border-radius: 50%;
+      background: rgba(0,0,0,0.55); color: #fff; border: none;
+      font-size: 12px; line-height: 1; display: flex; align-items: center; justify-content: center;
+      opacity: 0; transition: opacity 0.15s;
+    }
+    .page-card:hover .remove-page { opacity: 1; }
+    .page-card .remove-page:hover { background: var(--danger); }
+
+    /* Status / progress */
+    .status {
+      display: none; background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 18px; margin-bottom: 20px;
+    }
+    .status.visible { display: block; }
+    .status-text { font-size: 0.9rem; color: var(--muted); margin-bottom: 10px; }
+    .progress-bar { height: 6px; background: var(--surface2); border-radius: 3px; overflow: hidden; }
+    .progress-bar .fill { height: 100%; background: var(--accent); width: 0%; transition: width 0.2s; }
 
     /* Result */
     .result {
-      display: none;
-      margin-top: 1.5rem;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 1.5rem;
-      text-align: center;
+      display: none; background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 24px; text-align: center;
     }
     .result.visible { display: block; }
+    .result .sizes { display: flex; justify-content: center; gap: 28px; margin: 14px 0; flex-wrap: wrap; }
+    .result .size-box .value { font-size: 1.35rem; font-weight: 700; }
+    .result .size-box .label { font-size: 0.78rem; color: var(--muted); }
+    .result .saved { font-weight: 600; font-size: 1rem; margin-bottom: 14px; color: var(--success); }
+    .result .saved.none { color: var(--warning); }
+    .result .note { font-size: 0.82rem; color: var(--muted); margin-bottom: 16px; }
 
-    .result-icon { font-size: 2.1rem; margin-bottom: 0.4rem; }
-    .result h3 { font-size: 1.15rem; margin-bottom: 0.3rem; }
-
-    .size-compare {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 0.9rem;
-      margin: 1.15rem 0;
-      flex-wrap: wrap;
+    .download-btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--success); color: #0f1117; font-weight: 600;
+      padding: 12px 26px; border-radius: 8px; text-decoration: none; font-size: 0.95rem;
     }
-    .size-box {
-      background: var(--surface-2);
-      border-radius: 10px;
-      padding: 0.7rem 1rem;
-      min-width: 100px;
-    }
-    .size-box .label {
-      font-size: 0.68rem;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.03em;
-    }
-    .size-box .value {
-      font-size: 1.1rem;
-      font-weight: 700;
-      margin-top: 0.1rem;
-    }
-    .size-arrow { color: var(--text-muted); font-size: 1.2rem; }
-
-    .savings {
-      font-size: 0.95rem;
-      font-weight: 600;
-      color: var(--success);
-      margin-bottom: 1.15rem;
-    }
-    .savings.none { color: var(--warning); }
-
-    .note {
-      font-size: 0.78rem;
-      color: var(--text-muted);
-      margin-top: 1rem;
-      line-height: 1.4;
-    }
+    .download-btn:hover { opacity: 0.9; }
 
     footer {
-      text-align: center;
-      margin-top: 3rem;
-      padding-top: 1.5rem;
-      border-top: 1px solid var(--border);
-      color: var(--text-muted);
-      font-size: 0.8rem;
+      text-align: center; margin-top: 36px; color: var(--muted); font-size: 0.8rem;
     }
     footer a { color: var(--accent); text-decoration: none; }
-    footer a:hover { text-decoration: underline; }
 
-    @media (max-width: 480px) {
-      .preset-grid { grid-template-columns: 1fr; }
+    /* Empty helper */
+    .empty-hint { text-align: center; color: var(--muted); font-size: 0.9rem; padding: 20px; }
+
+    @media (max-width: 560px) {
+      .page-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
       header h1 { font-size: 1.45rem; }
     }
   </style>
@@ -374,446 +212,559 @@
   <div class="container">
     <header>
       <h1>PDF Shrinker</h1>
-      <p>Compress & merge PDFs in your browser. Files never leave your device.</p>
-      <div class="badge">🔒 100% private · No uploads</div>
+      <p>Reorder pages · Rotate · Normalize to Letter · Compress</p>
+      <div class="badge">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        100% client-side · files never leave your device
+      </div>
     </header>
 
     <div class="drop-zone" id="dropZone">
-      <input type="file" id="fileInput" accept="application/pdf,.pdf" multiple />
-      <div class="drop-icon">📄</div>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+        <polyline points="14 2 14 8 20 8"/>
+        <line x1="12" y1="18" x2="12" y2="12"/>
+        <line x1="9" y1="15" x2="15" y2="15"/>
+      </svg>
       <h2>Drop PDFs here</h2>
-      <p>or click to browse · multiple files supported</p>
+      <p>or click to choose · multiple files supported</p>
+      <input type="file" id="fileInput" accept="application/pdf" multiple />
     </div>
 
-    <div class="file-list" id="fileList">
-      <div class="file-list-header">
-        <span id="fileCount">0 files</span>
-        <span>Drag to reorder</span>
-      </div>
-      <div id="fileItems"></div>
-      <button class="add-more" id="addMoreBtn">+ Add more PDFs</button>
+    <div class="toolbar" id="toolbar">
+      <div class="info" id="toolbarInfo">0 pages</div>
+      <button class="btn-ghost" id="addMoreBtn">+ Add more</button>
+      <button class="btn-ghost btn-danger-ghost" id="clearBtn">Clear all</button>
+      <button class="btn-secondary" id="mergeOnlyBtn">Merge only</button>
+      <button class="btn-primary" id="compressBtn">Compress</button>
     </div>
 
     <div class="presets" id="presets">
-      <h3>Compression quality</h3>
-      <div class="preset-grid">
-        <div class="preset selected" data-preset="high">
-          <div class="preset-label">High</div>
-          <div class="preset-desc">Best quality<br>~150 DPI</div>
-        </div>
-        <div class="preset" data-preset="balanced">
-          <div class="preset-label">Balanced</div>
-          <div class="preset-desc">Good trade-off<br>~120 DPI</div>
-        </div>
-        <div class="preset" data-preset="small">
-          <div class="preset-label">Small</div>
-          <div class="preset-desc">Smallest size<br>~96 DPI</div>
-        </div>
+      <div class="preset active" data-scale="1.6" data-quality="0.72">
+        <div class="label">High</div>
+        <div class="desc">~115 DPI</div>
+      </div>
+      <div class="preset" data-scale="1.25" data-quality="0.58">
+        <div class="label">Balanced</div>
+        <div class="desc">~90 DPI</div>
+      </div>
+      <div class="preset" data-scale="0.95" data-quality="0.45">
+        <div class="label">Small</div>
+        <div class="desc">~70 DPI</div>
+      </div>
+      <div class="preset" data-scale="0.7" data-quality="0.32">
+        <div class="label">Super Small</div>
+        <div class="desc">~50 DPI</div>
       </div>
     </div>
 
-    <div class="actions" id="actions">
-      <button class="btn btn-primary" id="compressBtn">Compress</button>
-      <button class="btn btn-secondary" id="mergeBtn" style="display:none">Merge only (no compression)</button>
-    </div>
+    <div class="page-grid" id="pageGrid"></div>
 
-    <div class="progress-wrap" id="progressWrap">
-      <div class="progress-bar">
-        <div class="progress-fill" id="progressFill"></div>
-      </div>
-      <div class="progress-text" id="progressText">Preparing…</div>
+    <div class="status" id="status">
+      <div class="status-text" id="statusText">Working…</div>
+      <div class="progress-bar"><div class="fill" id="progressFill"></div></div>
     </div>
 
     <div class="result" id="result">
-      <div class="result-icon" id="resultIcon">✅</div>
-      <h3 id="resultTitle">Done!</h3>
-      <div class="size-compare">
+      <div class="sizes">
         <div class="size-box">
-          <div class="label">Original</div>
           <div class="value" id="origSize">—</div>
+          <div class="label">Original</div>
         </div>
-        <div class="size-arrow">→</div>
         <div class="size-box">
-          <div class="label">Result</div>
           <div class="value" id="newSize">—</div>
+          <div class="label">Result</div>
         </div>
       </div>
-      <div class="savings" id="savings">—</div>
-      <button class="btn btn-primary" id="downloadBtn">Download PDF</button>
-      <button class="btn btn-secondary" id="againBtn" style="margin-top:0.6rem">Start over</button>
-      <p class="note" id="resultNote"></p>
+      <div class="saved" id="savedText"></div>
+      <div class="note" id="resultNote"></div>
+      <a class="download-btn" id="downloadBtn" download="output.pdf">Download PDF</a>
+      <div style="margin-top:14px">
+        <button class="btn-ghost" id="againBtn">Start over</button>
+      </div>
     </div>
 
     <footer>
-      <p>Open source · Runs entirely in your browser</p>
-      <p style="margin-top:0.4rem">Built for privacy · <a href="https://github.com" target="_blank" rel="noopener">Fork on GitHub</a></p>
+      Built with <a href="https://github.com/Hopding/pdf-lib" target="_blank" rel="noopener">pdf-lib</a>
+      &amp; <a href="https://mozilla.github.io/pdf.js/" target="_blank" rel="noopener">PDF.js</a>
+      · Pages normalized to US Letter · Open source
     </footer>
   </div>
 
   <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+  <script src="https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+  <script>
+    pdfjsLib.GlobalWorkerOptions.workerSrc =
+      'https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
 
-  <script type="module">
-    import * as pdfjsLib from "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.8.69/pdf.min.mjs";
-    pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.8.69/pdf.worker.min.mjs";
+    const { PDFDocument, degrees, rgb } = PDFLib;
 
-    const { PDFDocument } = PDFLib;
+    // US Letter in PDF points (1 pt = 1/72 in)
+    const LETTER_W = 612;
+    const LETTER_H = 792;
 
     // ---- State ----
-    /** @type {{ id: string, file: File, name: string, size: number }[]} */
-    let files = [];
-    let selectedPreset = "high";
+    /** @type {{id:string, sourceFile:File, sourceName:string, pageIndex:number, rotation:number, thumbCanvas?:HTMLCanvasElement}[]} */
+    let pages = [];
+    let activePreset = { scale: 1.6, quality: 0.72 };
+    let dragSrcId = null;
+    let originalTotalBytes = 0;
     let resultBlob = null;
-    let resultFilename = "result.pdf";
-
-    const PRESETS = {
-      high:     { scale: 2.0,  quality: 0.82 },
-      balanced: { scale: 1.5,  quality: 0.65 },
-      small:    { scale: 1.15, quality: 0.48 },
-    };
+    let resultFilename = 'output.pdf';
 
     // ---- DOM ----
-    const dropZone     = document.getElementById("dropZone");
-    const fileInput    = document.getElementById("fileInput");
-    const fileList     = document.getElementById("fileList");
-    const fileItems    = document.getElementById("fileItems");
-    const fileCount    = document.getElementById("fileCount");
-    const addMoreBtn   = document.getElementById("addMoreBtn");
-    const presetsEl    = document.getElementById("presets");
-    const actionsEl    = document.getElementById("actions");
-    const compressBtn  = document.getElementById("compressBtn");
-    const mergeBtn     = document.getElementById("mergeBtn");
-    const progressWrap = document.getElementById("progressWrap");
-    const progressFill = document.getElementById("progressFill");
-    const progressText = document.getElementById("progressText");
-    const resultEl     = document.getElementById("result");
-    const resultIcon   = document.getElementById("resultIcon");
-    const resultTitle  = document.getElementById("resultTitle");
-    const origSizeEl   = document.getElementById("origSize");
-    const newSizeEl    = document.getElementById("newSize");
-    const savingsEl    = document.getElementById("savings");
-    const downloadBtn  = document.getElementById("downloadBtn");
-    const againBtn     = document.getElementById("againBtn");
-    const resultNote   = document.getElementById("resultNote");
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const toolbar = document.getElementById('toolbar');
+    const toolbarInfo = document.getElementById('toolbarInfo');
+    const presetsEl = document.getElementById('presets');
+    const pageGrid = document.getElementById('pageGrid');
+    const statusEl = document.getElementById('status');
+    const statusText = document.getElementById('statusText');
+    const progressFill = document.getElementById('progressFill');
+    const resultEl = document.getElementById('result');
+    const mergeOnlyBtn = document.getElementById('mergeOnlyBtn');
+    const compressBtn = document.getElementById('compressBtn');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const againBtn = document.getElementById('againBtn');
+    const addMoreBtn = document.getElementById('addMoreBtn');
+    const clearBtn = document.getElementById('clearBtn');
 
     // ---- Helpers ----
-    function formatBytes(bytes) {
-      if (bytes < 1024) return bytes + " B";
-      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
-      return (bytes / (1024 * 1024)).toFixed(2) + " MB";
+    function uid() { return Math.random().toString(36).slice(2, 10); }
+
+    function formatBytes(b) {
+      if (b < 1024) return b + ' B';
+      if (b < 1048576) return (b / 1024).toFixed(1) + ' KB';
+      return (b / 1048576).toFixed(2) + ' MB';
     }
 
-    function uid() {
-      return Math.random().toString(36).slice(2, 10);
+    function showStatus(msg, pct = 0) {
+      statusEl.classList.add('visible');
+      resultEl.classList.remove('visible');
+      statusText.textContent = msg;
+      progressFill.style.width = Math.round(pct * 100) + '%';
     }
 
-    function totalSize() {
-      return files.reduce((s, f) => s + f.size, 0);
+    function hideStatus() { statusEl.classList.remove('visible'); }
+
+    function updateToolbar() {
+      const n = pages.length;
+      toolbar.classList.toggle('visible', n > 0);
+      presetsEl.classList.toggle('visible', n > 0);
+      pageGrid.classList.toggle('visible', n > 0);
+      dropZone.style.display = n > 0 ? 'none' : 'block';
+
+      toolbarInfo.innerHTML = n
+        ? `<strong>${n}</strong> page${n === 1 ? '' : 's'} · will be normalized to <strong>US Letter</strong>`
+        : '';
     }
 
-    function setUI(state) {
-      // idle | ready | working | done
-      dropZone.style.display = state === "idle" ? "block" : "none";
-      fileList.classList.toggle("visible", state === "ready" || state === "working");
-      presetsEl.classList.toggle("visible", state === "ready");
-      actionsEl.classList.toggle("visible", state === "ready");
-      progressWrap.classList.toggle("visible", state === "working");
-      resultEl.classList.toggle("visible", state === "done");
+    // ---- File intake ----
+    async function addFiles(fileList) {
+      const pdfFiles = Array.from(fileList).filter(f =>
+        f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf')
+      );
+      if (!pdfFiles.length) return;
 
-      // Show merge button only when 2+ files
-      mergeBtn.style.display = files.length >= 2 ? "inline-flex" : "none";
+      showStatus('Reading PDFs…', 0.05);
+      originalTotalBytes += pdfFiles.reduce((s, f) => s + f.size, 0);
 
-      // Button labels
-      if (files.length >= 2) {
-        compressBtn.textContent = "Merge & Compress";
-      } else {
-        compressBtn.textContent = "Compress";
+      let done = 0;
+      for (const file of pdfFiles) {
+        try {
+          const data = new Uint8Array(await file.arrayBuffer());
+          const pdf = await pdfjsLib.getDocument({ data }).promise;
+          const numPages = pdf.numPages;
+
+          for (let i = 1; i <= numPages; i++) {
+            const pageItem = {
+              id: uid(),
+              sourceFile: file,
+              sourceName: file.name,
+              pageIndex: i,          // 1-based for pdf.js
+              rotation: 0,           // 0, 90, 180, 270
+              pdfRef: pdf,           // keep reference for later rendering
+              thumbCanvas: null
+            };
+            pages.push(pageItem);
+          }
+        } catch (err) {
+          console.error('Failed to load', file.name, err);
+        }
+        done++;
+        showStatus(`Loading ${done}/${pdfFiles.length}…`, 0.1 + 0.3 * (done / pdfFiles.length));
+      }
+
+      updateToolbar();
+      await renderAllThumbnails();
+      hideStatus();
+    }
+
+    // ---- Thumbnails ----
+    async function renderAllThumbnails() {
+      const total = pages.length;
+      let i = 0;
+      for (const p of pages) {
+        if (!p.thumbCanvas) {
+          await renderThumbnail(p);
+        }
+        i++;
+        if (i % 3 === 0 || i === total) {
+          showStatus(`Generating previews… ${i}/${total}`, 0.4 + 0.55 * (i / total));
+        }
+      }
+      renderPageGrid();
+    }
+
+    async function renderThumbnail(pageItem) {
+      try {
+        const page = await pageItem.pdfRef.getPage(pageItem.pageIndex);
+        // Render at modest resolution for thumbnail
+        const baseViewport = page.getViewport({ scale: 0.35, rotation: pageItem.rotation });
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.floor(baseViewport.width);
+        canvas.height = Math.floor(baseViewport.height);
+        const ctx = canvas.getContext('2d');
+        await page.render({ canvasContext: ctx, viewport: baseViewport }).promise;
+        pageItem.thumbCanvas = canvas;
+      } catch (err) {
+        console.error('Thumb error', err);
       }
     }
 
-    function renderFileList() {
-      fileItems.innerHTML = "";
-      fileCount.textContent = files.length === 1 ? "1 file" : `${files.length} files`;
+    function renderPageGrid() {
+      pageGrid.innerHTML = '';
+      pages.forEach((p, idx) => {
+        const card = document.createElement('div');
+        card.className = 'page-card';
+        card.draggable = true;
+        card.dataset.id = p.id;
 
-      files.forEach((item, index) => {
-        const el = document.createElement("div");
-        el.className = "file-item";
-        el.draggable = true;
-        el.dataset.id = item.id;
+        const thumbHtml = p.thumbCanvas
+          ? '' // we'll append the canvas
+          : '<div class="thumb-loading">…</div>';
 
-        el.innerHTML = `
-          <span class="drag-handle">⠿</span>
-          <div class="file-icon">📄</div>
-          <div class="file-meta">
-            <div class="file-name">${escapeHtml(item.name)}</div>
-            <div class="file-size">${formatBytes(item.size)}</div>
+        card.innerHTML = `
+          <button class="remove-page" title="Remove page" data-id="${p.id}">×</button>
+          <div class="thumb-wrap"></div>
+          <div class="meta">
+            <span class="page-num">#${idx + 1}</span>
+            <span>${p.rotation ? p.rotation + '°' : ''}</span>
           </div>
-          <button class="remove-btn" data-id="${item.id}" title="Remove">×</button>
+          <div class="actions">
+            <button data-action="rot-ccw" data-id="${p.id}" title="Rotate left">↺</button>
+            <button data-action="rot-cw" data-id="${p.id}" title="Rotate right">↻</button>
+          </div>
         `;
 
+        const wrap = card.querySelector('.thumb-wrap');
+        if (p.thumbCanvas) {
+          // Clone so the same canvas isn't moved around the DOM
+          const clone = p.thumbCanvas.cloneNode(true);
+          const ctx = clone.getContext('2d');
+          ctx.drawImage(p.thumbCanvas, 0, 0);
+          wrap.appendChild(clone);
+        } else {
+          wrap.innerHTML = '<div class="thumb-loading">…</div>';
+        }
+
         // Drag events
-        el.addEventListener("dragstart", (e) => {
-          e.dataTransfer.setData("text/plain", item.id);
-          el.classList.add("dragging");
+        card.addEventListener('dragstart', (e) => {
+          dragSrcId = p.id;
+          card.classList.add('dragging');
+          e.dataTransfer.effectAllowed = 'move';
         });
-        el.addEventListener("dragend", () => el.classList.remove("dragging"));
-        el.addEventListener("dragover", (e) => {
-          e.preventDefault();
-          el.classList.add("drag-over");
+        card.addEventListener('dragend', () => {
+          card.classList.remove('dragging');
+          dragSrcId = null;
+          pageGrid.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
         });
-        el.addEventListener("dragleave", () => el.classList.remove("drag-over"));
-        el.addEventListener("drop", (e) => {
+        card.addEventListener('dragover', (e) => {
           e.preventDefault();
-          el.classList.remove("drag-over");
-          const fromId = e.dataTransfer.getData("text/plain");
-          const toId = item.id;
-          if (fromId === toId) return;
-          reorder(fromId, toId);
+          e.dataTransfer.dropEffect = 'move';
+          card.classList.add('drag-over');
+        });
+        card.addEventListener('dragleave', () => card.classList.remove('drag-over'));
+        card.addEventListener('drop', (e) => {
+          e.preventDefault();
+          card.classList.remove('drag-over');
+          if (!dragSrcId || dragSrcId === p.id) return;
+          const from = pages.findIndex(x => x.id === dragSrcId);
+          const to = pages.findIndex(x => x.id === p.id);
+          if (from < 0 || to < 0) return;
+          const [moved] = pages.splice(from, 1);
+          pages.splice(to, 0, moved);
+          renderPageGrid();
         });
 
-        fileItems.appendChild(el);
+        pageGrid.appendChild(card);
       });
 
-      // Remove buttons
-      fileItems.querySelectorAll(".remove-btn").forEach((btn) => {
-        btn.addEventListener("click", (e) => {
+      // Button handlers (delegated-ish)
+      pageGrid.querySelectorAll('[data-action]').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
           e.stopPropagation();
-          removeFile(btn.dataset.id);
+          const id = btn.dataset.id;
+          const action = btn.dataset.action;
+          const item = pages.find(x => x.id === id);
+          if (!item) return;
+
+          if (action === 'rot-cw') item.rotation = (item.rotation + 90) % 360;
+          if (action === 'rot-ccw') item.rotation = (item.rotation + 270) % 360;
+
+          // Re-render thumbnail with new rotation
+          item.thumbCanvas = null;
+          await renderThumbnail(item);
+          renderPageGrid();
+        });
+      });
+
+      pageGrid.querySelectorAll('.remove-page').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          pages = pages.filter(x => x.id !== btn.dataset.id);
+          updateToolbar();
+          renderPageGrid();
         });
       });
     }
 
-    function escapeHtml(str) {
-      return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-    }
+    // ---- Build final PDF ----
 
-    function reorder(fromId, toId) {
-      const fromIdx = files.findIndex((f) => f.id === fromId);
-      const toIdx = files.findIndex((f) => f.id === toId);
-      if (fromIdx < 0 || toIdx < 0) return;
-      const [moved] = files.splice(fromIdx, 1);
-      files.splice(toIdx, 0, moved);
-      renderFileList();
-    }
+    /** Merge-only: copy pages with rotation + scale/center onto Letter */
+    async function buildLossless() {
+      const out = await PDFDocument.create();
 
-    function removeFile(id) {
-      files = files.filter((f) => f.id !== id);
-      if (files.length === 0) {
-        setUI("idle");
-      } else {
-        renderFileList();
-        setUI("ready");
-      }
-    }
+      // We need the original pdf-lib documents. Cache them by file.
+      const libCache = new Map();
 
-    function addFiles(fileListObj) {
-      const newOnes = Array.from(fileListObj).filter((f) => f.type === "application/pdf" || f.name.toLowerCase().endsWith(".pdf"));
-      if (newOnes.length === 0) {
-        alert("Please select PDF files.");
-        return;
-      }
-      for (const f of newOnes) {
-        // Avoid exact duplicates by name+size
-        if (files.some((x) => x.name === f.name && x.size === f.size)) continue;
-        files.push({ id: uid(), file: f, name: f.name, size: f.size });
-      }
-      renderFileList();
-      setUI("ready");
-    }
+      for (let i = 0; i < pages.length; i++) {
+        const item = pages[i];
+        showStatus(`Placing page ${i + 1}/${pages.length}…`, (i / pages.length) * 0.9);
 
-    function reset() {
-      files = [];
-      resultBlob = null;
-      fileInput.value = "";
-      setUI("idle");
-    }
+        let srcDoc = libCache.get(item.sourceFile);
+        if (!srcDoc) {
+          const bytes = await item.sourceFile.arrayBuffer();
+          srcDoc = await PDFDocument.load(bytes, { ignoreEncryption: true });
+          libCache.set(item.sourceFile, srcDoc);
+        }
 
-    // ---- File input / drop ----
-    dropZone.addEventListener("dragover", (e) => {
-      e.preventDefault();
-      dropZone.classList.add("dragover");
-    });
-    dropZone.addEventListener("dragleave", () => dropZone.classList.remove("dragover"));
-    dropZone.addEventListener("drop", (e) => {
-      e.preventDefault();
-      dropZone.classList.remove("dragover");
-      if (e.dataTransfer.files.length) addFiles(e.dataTransfer.files);
-    });
-    fileInput.addEventListener("change", () => {
-      if (fileInput.files.length) addFiles(fileInput.files);
-      fileInput.value = "";
-    });
-    addMoreBtn.addEventListener("click", () => fileInput.click());
+        const [embedded] = await out.embedPages([srcDoc.getPage(item.pageIndex - 1)]);
+        const ew = embedded.width;
+        const eh = embedded.height;
 
-    // ---- Presets ----
-    document.querySelectorAll(".preset").forEach((el) => {
-      el.addEventListener("click", () => {
-        document.querySelectorAll(".preset").forEach((p) => p.classList.remove("selected"));
-        el.classList.add("selected");
-        selectedPreset = el.dataset.preset;
-      });
-    });
+        // Apply rotation to dimensions
+        const rot = item.rotation;
+        const isLandscape = (rot % 180) !== 0;
+        const contentW = isLandscape ? eh : ew;
+        const contentH = isLandscape ? ew : eh;
 
-    // ---- Core: Merge (lossless) ----
-    async function mergePdfs(onProgress) {
-      const outDoc = await PDFDocument.create();
-      let pageCount = 0;
+        // Scale to fit inside Letter while preserving aspect ratio
+        const scale = Math.min(LETTER_W / contentW, LETTER_H / contentH);
+        const drawW = contentW * scale;
+        const drawH = contentH * scale;
+        const x = (LETTER_W - drawW) / 2;
+        const y = (LETTER_H - drawH) / 2;
 
-      for (let i = 0; i < files.length; i++) {
-        onProgress?.(`Merging ${i + 1} of ${files.length}…`, (i / files.length) * 100);
-        const bytes = await files[i].file.arrayBuffer();
-        const src = await PDFDocument.load(bytes, { ignoreEncryption: true });
-        const pages = await outDoc.copyPages(src, src.getPageIndices());
-        pages.forEach((p) => outDoc.addPage(p));
-        pageCount += pages.length;
+        const newPage = out.addPage([LETTER_W, LETTER_H]);
+        // White background
+        newPage.drawRectangle({ x: 0, y: 0, width: LETTER_W, height: LETTER_H, color: rgb(1, 1, 1) });
+
+        newPage.drawPage(embedded, {
+          x, y,
+          width: isLandscape ? drawH : drawW,   // when rotated 90/270 the visual width/height swap
+          height: isLandscape ? drawW : drawH,
+          rotate: degrees(rot)
+        });
       }
 
-      onProgress?.("Finalizing merge…", 95);
-      const pdfBytes = await outDoc.save({ useObjectStreams: true });
-      return { bytes: pdfBytes, pageCount };
+      showStatus('Saving…', 0.95);
+      return await out.save({ useObjectStreams: true });
     }
 
-    // ---- Core: Compress (rasterize) ----
-    async function compressFromBytes(pdfBytes, onProgress) {
-      const preset = PRESETS[selectedPreset];
-      const pdf = await pdfjsLib.getDocument({ data: pdfBytes }).promise;
-      const numPages = pdf.numPages;
-      const outDoc = await PDFDocument.create();
+    /** Compress path: rasterize each (rotated + Letter) page */
+    async function buildCompressed() {
+      const out = await PDFDocument.create();
+      const total = pages.length;
 
-      for (let i = 1; i <= numPages; i++) {
-        onProgress?.(`Compressing page ${i} of ${numPages}…`, Math.round((i / numPages) * 90));
+      for (let i = 0; i < total; i++) {
+        const item = pages[i];
+        showStatus(`Compressing page ${i + 1}/${total}…`, i / total);
 
-        const page = await pdf.getPage(i);
-        const viewport = page.getViewport({ scale: preset.scale });
+        const page = await item.pdfRef.getPage(item.pageIndex);
+        // Render at chosen scale, already including rotation
+        const viewport = page.getViewport({ scale: activePreset.scale, rotation: item.rotation });
 
-        const canvas = document.createElement("canvas");
-        canvas.width = viewport.width;
-        canvas.height = viewport.height;
-        const ctx = canvas.getContext("2d");
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.floor(viewport.width);
+        canvas.height = Math.floor(viewport.height);
+        const ctx = canvas.getContext('2d');
+        // White background before render (some PDFs are transparent)
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
 
         await page.render({ canvasContext: ctx, viewport }).promise;
 
-        const blob = await new Promise((resolve) =>
-          canvas.toBlob(resolve, "image/jpeg", preset.quality)
-        );
-        const jpegBytes = new Uint8Array(await blob.arrayBuffer());
-        const img = await outDoc.embedJpg(jpegBytes);
-        const pdfPage = outDoc.addPage([img.width, img.height]);
-        pdfPage.drawImage(img, { x: 0, y: 0, width: img.width, height: img.height });
+        // Now fit this raster into Letter
+        // We create a Letter-sized canvas and draw the rendered page scaled + centered
+        const letterCanvas = document.createElement('canvas');
+        // Render Letter at roughly the same pixel density
+        const pxPerPt = activePreset.scale; // approximate
+        letterCanvas.width = Math.round(LETTER_W * pxPerPt);
+        letterCanvas.height = Math.round(LETTER_H * pxPerPt);
+        const lctx = letterCanvas.getContext('2d');
+        lctx.fillStyle = '#ffffff';
+        lctx.fillRect(0, 0, letterCanvas.width, letterCanvas.height);
 
-        canvas.width = 0;
-        canvas.height = 0;
+        const scaleFit = Math.min(
+          letterCanvas.width / canvas.width,
+          letterCanvas.height / canvas.height
+        );
+        const dw = canvas.width * scaleFit;
+        const dh = canvas.height * scaleFit;
+        const dx = (letterCanvas.width - dw) / 2;
+        const dy = (letterCanvas.height - dh) / 2;
+        lctx.drawImage(canvas, dx, dy, dw, dh);
+
+        const blob = await new Promise(r => letterCanvas.toBlob(r, 'image/jpeg', activePreset.quality));
+        const imgBytes = new Uint8Array(await blob.arrayBuffer());
+        const jpg = await out.embedJpg(imgBytes);
+
+        const newPage = out.addPage([LETTER_W, LETTER_H]);
+        newPage.drawImage(jpg, { x: 0, y: 0, width: LETTER_W, height: LETTER_H });
       }
 
-      onProgress?.("Finalizing…", 95);
-      return await outDoc.save({ useObjectStreams: true });
+      showStatus('Saving…', 0.97);
+      return await out.save({ useObjectStreams: true });
     }
 
-    // ---- Actions ----
-    async function run(mode) {
-      // mode: "compress" | "merge"
-      if (files.length === 0) return;
+    function showResult(bytes, note) {
+      hideStatus();
+      resultEl.classList.add('visible');
+      pageGrid.classList.remove('visible');
+      toolbar.classList.remove('visible');
+      presetsEl.classList.remove('visible');
 
-      compressBtn.disabled = true;
-      mergeBtn.disabled = true;
-      setUI("working");
-      progressFill.style.width = "0%";
-      progressText.textContent = "Preparing…";
+      const neu = bytes.length;
+      document.getElementById('origSize').textContent = formatBytes(originalTotalBytes);
+      document.getElementById('newSize').textContent = formatBytes(neu);
 
-      const origBytes = totalSize();
+      const saved = originalTotalBytes - neu;
+      const pct = originalTotalBytes > 0 ? Math.round((saved / originalTotalBytes) * 100) : 0;
+      const savedEl = document.getElementById('savedText');
+      if (saved > 512) {
+        savedEl.textContent = `Saved ${formatBytes(saved)} (${pct}%)`;
+        savedEl.classList.remove('none');
+      } else if (saved < -512) {
+        savedEl.textContent = `Result is ${formatBytes(-saved)} larger`;
+        savedEl.classList.add('none');
+      } else {
+        savedEl.textContent = 'Size essentially unchanged';
+        savedEl.classList.add('none');
+      }
 
+      document.getElementById('resultNote').textContent = note;
+
+      resultBlob = new Blob([bytes], { type: 'application/pdf' });
+      const url = URL.createObjectURL(resultBlob);
+      downloadBtn.href = url;
+      downloadBtn.download = resultFilename;
+    }
+
+    // ---- Buttons ----
+    mergeOnlyBtn.addEventListener('click', async () => {
+      if (!pages.length) return;
+      setBusy(true);
       try {
-        let finalBytes;
-        let note = "";
-
-        if (mode === "merge") {
-          // Lossless merge only
-          const { bytes } = await mergePdfs((msg, pct) => {
-            progressText.textContent = msg;
-            progressFill.style.width = pct + "%";
-          });
-          finalBytes = bytes;
-          note = "Pages kept at original quality. Text remains selectable.";
-          resultFilename = files.length > 1
-            ? `merged-${files.length}-docs.pdf`
-            : files[0].name.replace(/\.pdf$/i, "") + "-merged.pdf";
-        } else {
-          // Compress (and merge if multiple)
-          let sourceBytes;
-          if (files.length === 1) {
-            sourceBytes = new Uint8Array(await files[0].file.arrayBuffer());
-            progressText.textContent = "Loading PDF…";
-          } else {
-            const { bytes } = await mergePdfs((msg, pct) => {
-              progressText.textContent = msg;
-              progressFill.style.width = (pct * 0.25) + "%";
-            });
-            sourceBytes = bytes;
-          }
-
-          finalBytes = await compressFromBytes(sourceBytes, (msg, pct) => {
-            progressText.textContent = msg;
-            const base = files.length > 1 ? 25 : 0;
-            progressFill.style.width = base + pct * (files.length > 1 ? 0.7 : 0.95) + "%";
-          });
-
-          note = "Pages were converted to images for smaller size. Text is no longer selectable.";
-          resultFilename = files.length > 1
-            ? `merged-compressed.pdf`
-            : files[0].name.replace(/\.pdf$/i, "") + "-compressed.pdf";
-        }
-
-        resultBlob = new Blob([finalBytes], { type: "application/pdf" });
-        const neu = resultBlob.size;
-        const saved = origBytes - neu;
-        const pct = Math.round((saved / origBytes) * 100);
-
-        origSizeEl.textContent = formatBytes(origBytes);
-        newSizeEl.textContent = formatBytes(neu);
-
-        if (saved > 512) {
-          resultIcon.textContent = "✅";
-          resultTitle.textContent = mode === "merge" ? "Merged!" : "Done!";
-          savingsEl.textContent = `Saved ${formatBytes(saved)} (${pct}% smaller)`;
-          savingsEl.className = "savings";
-        } else if (saved < -512) {
-          resultIcon.textContent = "⚠️";
-          resultTitle.textContent = "Result is larger";
-          savingsEl.textContent = "Output grew slightly — original may already be well optimized.";
-          savingsEl.className = "savings none";
-        } else {
-          resultIcon.textContent = "✅";
-          resultTitle.textContent = mode === "merge" ? "Merged!" : "Done!";
-          savingsEl.textContent = "Size essentially unchanged.";
-          savingsEl.className = "savings none";
-        }
-
-        resultNote.textContent = note;
-        progressFill.style.width = "100%";
-        setUI("done");
+        resultFilename = pages.length > 1 ? 'merged-letter.pdf' : 'normalized-letter.pdf';
+        const bytes = await buildLossless();
+        showResult(bytes, 'Pages normalized to US Letter. Original quality kept · text stays selectable.');
       } catch (err) {
         console.error(err);
-        alert("Something went wrong: " + (err.message || err));
-        setUI("ready");
+        statusText.textContent = 'Error: ' + (err.message || err);
       } finally {
-        compressBtn.disabled = false;
-        mergeBtn.disabled = false;
+        setBusy(false);
       }
-    }
-
-    compressBtn.addEventListener("click", () => run("compress"));
-    mergeBtn.addEventListener("click", () => run("merge"));
-
-    downloadBtn.addEventListener("click", () => {
-      if (!resultBlob) return;
-      const url = URL.createObjectURL(resultBlob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = resultFilename;
-      a.click();
-      URL.revokeObjectURL(url);
     });
 
-    againBtn.addEventListener("click", reset);
+    compressBtn.addEventListener('click', async () => {
+      if (!pages.length) return;
+      setBusy(true);
+      try {
+        resultFilename = pages.length > 1 ? 'merged-compressed-letter.pdf' : 'compressed-letter.pdf';
+        const bytes = await buildCompressed();
+        showResult(bytes, 'Pages normalized to US Letter and compressed. Text is no longer selectable.');
+      } catch (err) {
+        console.error(err);
+        statusText.textContent = 'Error: ' + (err.message || err);
+      } finally {
+        setBusy(false);
+      }
+    });
+
+    function setBusy(busy) {
+      mergeOnlyBtn.disabled = busy;
+      compressBtn.disabled = busy;
+      addMoreBtn.disabled = busy;
+      clearBtn.disabled = busy;
+    }
+
+    againBtn.addEventListener('click', () => {
+      pages = [];
+      originalTotalBytes = 0;
+      resultBlob = null;
+      resultEl.classList.remove('visible');
+      hideStatus();
+      updateToolbar();
+      pageGrid.innerHTML = '';
+      dropZone.style.display = 'block';
+    });
+
+    clearBtn.addEventListener('click', () => {
+      if (!confirm('Remove all pages?')) return;
+      pages = [];
+      originalTotalBytes = 0;
+      updateToolbar();
+      pageGrid.innerHTML = '';
+      dropZone.style.display = 'block';
+    });
+
+    addMoreBtn.addEventListener('click', () => fileInput.click());
+
+    // ---- Drop zone & file input ----
+    dropZone.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', () => {
+      addFiles(fileInput.files);
+      fileInput.value = '';
+    });
+
+    ['dragenter', 'dragover'].forEach(evt => {
+      dropZone.addEventListener(evt, e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+    });
+    ['dragleave', 'drop'].forEach(evt => {
+      dropZone.addEventListener(evt, e => { e.preventDefault(); dropZone.classList.remove('dragover'); });
+    });
+    dropZone.addEventListener('drop', e => addFiles(e.dataTransfer.files));
+
+    // Also allow dropping on the whole window when pages already exist
+    window.addEventListener('dragover', e => e.preventDefault());
+    window.addEventListener('drop', e => {
+      e.preventDefault();
+      if (e.dataTransfer.files?.length) addFiles(e.dataTransfer.files);
+    });
+
+    // ---- Presets ----
+    document.querySelectorAll('.preset').forEach(el => {
+      el.addEventListener('click', () => {
+        document.querySelectorAll('.preset').forEach(p => p.classList.remove('active'));
+        el.classList.add('active');
+        activePreset = {
+          scale: parseFloat(el.dataset.scale),
+          quality: parseFloat(el.dataset.quality)
+        };
+      });
+    });
   </script>
 </body>
 </html>
