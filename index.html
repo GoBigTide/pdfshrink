@@ -155,14 +155,45 @@
     .page-card .actions button:hover { border-color: var(--accent); }
 
     .page-card .remove-page {
-      position: absolute; top: 4px; right: 4px;
-      width: 22px; height: 22px; border-radius: 50%;
-      background: rgba(0,0,0,0.55); color: #fff; border: none;
-      font-size: 12px; line-height: 1; display: flex; align-items: center; justify-content: center;
-      opacity: 0; transition: opacity 0.15s;
+      position: absolute; top: 6px; right: 6px; z-index: 5;
+      width: 26px; height: 26px; border-radius: 50%;
+      background: rgba(20, 20, 28, 0.82); color: #fff; border: 1px solid rgba(255,255,255,0.25);
+      font-size: 14px; line-height: 1; display: flex; align-items: center; justify-content: center;
+      cursor: pointer; transition: background 0.15s, transform 0.1s;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.4);
     }
-    .page-card:hover .remove-page { opacity: 1; }
-    .page-card .remove-page:hover { background: var(--danger); }
+    .page-card .remove-page:hover {
+      background: var(--danger);
+      border-color: var(--danger);
+      transform: scale(1.08);
+    }
+
+    /* Lightbox */
+    .lightbox {
+      display: none; position: fixed; inset: 0; z-index: 1000;
+      background: rgba(0,0,0,0.82); align-items: center; justify-content: center;
+      padding: 24px; cursor: zoom-out;
+    }
+    .lightbox.visible { display: flex; }
+    .lightbox-inner {
+      position: relative; max-width: min(900px, 96vw); max-height: 92vh;
+      background: #111; border-radius: 10px; padding: 12px;
+      box-shadow: 0 12px 48px rgba(0,0,0,0.5); cursor: default;
+    }
+    .lightbox-inner canvas {
+      display: block; max-width: 100%; max-height: calc(92vh - 60px);
+      border-radius: 4px; background: #fff;
+    }
+    .lightbox-close {
+      position: absolute; top: -12px; right: -12px;
+      width: 32px; height: 32px; border-radius: 50%;
+      background: var(--surface2); color: var(--text); border: 1px solid var(--border);
+      font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+    }
+    .lightbox-close:hover { background: var(--danger); border-color: var(--danger); color: #fff; }
+    .lightbox-label {
+      text-align: center; font-size: 0.85rem; color: var(--muted); margin-top: 8px;
+    }
 
     /* Status / progress */
     .status {
@@ -281,6 +312,15 @@
       <a class="download-btn" id="downloadBtn" download="output.pdf">Download PDF</a>
       <div style="margin-top:14px">
         <button class="btn-ghost" id="againBtn">Start over</button>
+      </div>
+    </div>
+
+    <!-- Lightbox for enlarged page preview -->
+    <div class="lightbox" id="lightbox">
+      <div class="lightbox-inner" id="lightboxInner">
+        <button class="lightbox-close" id="lightboxClose" title="Close">×</button>
+        <div id="lightboxCanvasWrap"></div>
+        <div class="lightbox-label" id="lightboxLabel"></div>
       </div>
     </div>
 
@@ -469,6 +509,14 @@
           wrap.innerHTML = '<div class="thumb-loading">…</div>';
         }
 
+        // Double-click thumbnail to enlarge
+        wrap.style.cursor = 'zoom-in';
+        wrap.title = 'Double-click to enlarge';
+        wrap.addEventListener('dblclick', (e) => {
+          e.stopPropagation();
+          openLightbox(p, idx + 1);
+        });
+
         // Drag events
         card.addEventListener('dragstart', (e) => {
           dragSrcId = p.id;
@@ -529,6 +577,56 @@
         });
       });
     }
+
+    // ---- Lightbox ----
+    const lightbox = document.getElementById('lightbox');
+    const lightboxInner = document.getElementById('lightboxInner');
+    const lightboxCanvasWrap = document.getElementById('lightboxCanvasWrap');
+    const lightboxLabel = document.getElementById('lightboxLabel');
+    const lightboxClose = document.getElementById('lightboxClose');
+
+    async function openLightbox(pageItem, displayNum) {
+      lightboxCanvasWrap.innerHTML = '<div style="color:#999;padding:40px;text-align:center">Loading…</div>';
+      lightboxLabel.textContent = `Page ${displayNum}` + (pageItem.rotation ? ` · ${pageItem.rotation}°` : '');
+      lightbox.classList.add('visible');
+
+      try {
+        const page = await pageItem.pdfRef.getPage(pageItem.pageIndex);
+        // Higher-res preview
+        const viewport = page.getViewport({ scale: 1.4, rotation: pageItem.rotation });
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.floor(viewport.width);
+        canvas.height = Math.floor(viewport.height);
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        await page.render({ canvasContext: ctx, viewport }).promise;
+
+        lightboxCanvasWrap.innerHTML = '';
+        lightboxCanvasWrap.appendChild(canvas);
+      } catch (err) {
+        console.error(err);
+        lightboxCanvasWrap.innerHTML = '<div style="color:#f66;padding:40px">Failed to load preview</div>';
+      }
+    }
+
+    function closeLightbox() {
+      lightbox.classList.remove('visible');
+      lightboxCanvasWrap.innerHTML = '';
+    }
+
+    lightboxClose.addEventListener('click', (e) => {
+      e.stopPropagation();
+      closeLightbox();
+    });
+    lightbox.addEventListener('click', (e) => {
+      if (e.target === lightbox) closeLightbox();
+    });
+    lightboxInner.addEventListener('click', (e) => e.stopPropagation());
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && lightbox.classList.contains('visible')) closeLightbox();
+    });
+
 
     // ---- Build final PDF ----
 
@@ -742,15 +840,23 @@
     ['dragenter', 'dragover'].forEach(evt => {
       dropZone.addEventListener(evt, e => { e.preventDefault(); dropZone.classList.add('dragover'); });
     });
-    ['dragleave', 'drop'].forEach(evt => {
-      dropZone.addEventListener(evt, e => { e.preventDefault(); dropZone.classList.remove('dragover'); });
+    dropZone.addEventListener('dragleave', e => {
+      e.preventDefault();
+      dropZone.classList.remove('dragover');
     });
-    dropZone.addEventListener('drop', e => addFiles(e.dataTransfer.files));
+    dropZone.addEventListener('drop', e => {
+      e.preventDefault();
+      e.stopPropagation(); // prevent the window drop handler from also firing
+      dropZone.classList.remove('dragover');
+      addFiles(e.dataTransfer.files);
+    });
 
-    // Also allow dropping on the whole window when pages already exist
+    // Allow dropping anywhere on the page (e.g. after pages are already loaded)
     window.addEventListener('dragover', e => e.preventDefault());
     window.addEventListener('drop', e => {
       e.preventDefault();
+      // Only handle if the drop wasn't already handled by the drop zone
+      if (e.target === dropZone || dropZone.contains(e.target)) return;
       if (e.dataTransfer.files?.length) addFiles(e.dataTransfer.files);
     });
 
