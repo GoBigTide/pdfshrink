@@ -271,21 +271,21 @@
     </div>
 
     <div class="presets" id="presets">
-      <div class="preset active" data-scale="1.6" data-quality="0.72">
+      <div class="preset active" data-scale="4.17" data-quality="0.85">
         <div class="label">High</div>
-        <div class="desc">~115 DPI</div>
+        <div class="desc">300 DPI</div>
       </div>
-      <div class="preset" data-scale="1.25" data-quality="0.58">
+      <div class="preset" data-scale="2.08" data-quality="0.72">
         <div class="label">Balanced</div>
-        <div class="desc">~90 DPI</div>
+        <div class="desc">150 DPI</div>
       </div>
-      <div class="preset" data-scale="0.95" data-quality="0.45">
+      <div class="preset" data-scale="1.39" data-quality="0.55">
         <div class="label">Small</div>
-        <div class="desc">~70 DPI</div>
+        <div class="desc">100 DPI</div>
       </div>
-      <div class="preset" data-scale="0.7" data-quality="0.32">
+      <div class="preset" data-scale="0.97" data-quality="0.40">
         <div class="label">Super Small</div>
-        <div class="desc">~50 DPI</div>
+        <div class="desc">70 DPI</div>
       </div>
     </div>
 
@@ -346,7 +346,8 @@
     // ---- State ----
     /** @type {{id:string, sourceFile:File, sourceName:string, pageIndex:number, rotation:number, thumbCanvas?:HTMLCanvasElement}[]} */
     let pages = [];
-    let activePreset = { scale: 1.6, quality: 0.72 };
+    let activePreset = { scale: 4.17, quality: 0.85 };
+    let addingLock = false;
     let dragSrcId = null;
     let originalTotalBytes = 0;
     let resultBlob = null;
@@ -402,43 +403,51 @@
 
     // ---- File intake ----
     async function addFiles(fileList) {
+      // Prevent double-firing from drop zone + window handlers
+      if (addingLock) return;
       const pdfFiles = Array.from(fileList).filter(f =>
         f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf')
       );
       if (!pdfFiles.length) return;
 
-      showStatus('Reading PDFs…', 0.05);
-      originalTotalBytes += pdfFiles.reduce((s, f) => s + f.size, 0);
+      addingLock = true;
+      try {
+        showStatus('Reading PDFs…', 0.05);
+        originalTotalBytes += pdfFiles.reduce((s, f) => s + f.size, 0);
 
-      let done = 0;
-      for (const file of pdfFiles) {
-        try {
-          const data = new Uint8Array(await file.arrayBuffer());
-          const pdf = await pdfjsLib.getDocument({ data }).promise;
-          const numPages = pdf.numPages;
+        let done = 0;
+        for (const file of pdfFiles) {
+          try {
+            const data = new Uint8Array(await file.arrayBuffer());
+            const pdf = await pdfjsLib.getDocument({ data }).promise;
+            const numPages = pdf.numPages;
 
-          for (let i = 1; i <= numPages; i++) {
-            const pageItem = {
-              id: uid(),
-              sourceFile: file,
-              sourceName: file.name,
-              pageIndex: i,          // 1-based for pdf.js
-              rotation: 0,           // 0, 90, 180, 270
-              pdfRef: pdf,           // keep reference for later rendering
-              thumbCanvas: null
-            };
-            pages.push(pageItem);
+            for (let i = 1; i <= numPages; i++) {
+              const pageItem = {
+                id: uid(),
+                sourceFile: file,
+                sourceName: file.name,
+                pageIndex: i,          // 1-based for pdf.js
+                rotation: 0,           // 0, 90, 180, 270
+                pdfRef: pdf,           // keep reference for later rendering
+                thumbCanvas: null
+              };
+              pages.push(pageItem);
+            }
+          } catch (err) {
+            console.error('Failed to load', file.name, err);
           }
-        } catch (err) {
-          console.error('Failed to load', file.name, err);
+          done++;
+          showStatus(`Loading ${done}/${pdfFiles.length}…`, 0.1 + 0.3 * (done / pdfFiles.length));
         }
-        done++;
-        showStatus(`Loading ${done}/${pdfFiles.length}…`, 0.1 + 0.3 * (done / pdfFiles.length));
-      }
 
-      updateToolbar();
-      await renderAllThumbnails();
-      hideStatus();
+        updateToolbar();
+        await renderAllThumbnails();
+        hideStatus();
+      } finally {
+        // Small delay so a second event in the same drop gesture is ignored
+        setTimeout(() => { addingLock = false; }, 300);
+      }
     }
 
     // ---- Thumbnails ----
@@ -846,18 +855,18 @@
     });
     dropZone.addEventListener('drop', e => {
       e.preventDefault();
-      e.stopPropagation(); // prevent the window drop handler from also firing
+      e.stopPropagation();
       dropZone.classList.remove('dragover');
       addFiles(e.dataTransfer.files);
     });
 
-    // Allow dropping anywhere on the page (e.g. after pages are already loaded)
+    // Allow dropping anywhere else on the page
     window.addEventListener('dragover', e => e.preventDefault());
     window.addEventListener('drop', e => {
       e.preventDefault();
-      // Only handle if the drop wasn't already handled by the drop zone
+      e.stopPropagation();
       if (e.target === dropZone || dropZone.contains(e.target)) return;
-      if (e.dataTransfer.files?.length) addFiles(e.dataTransfer.files);
+      if (e.dataTransfer?.files?.length) addFiles(e.dataTransfer.files);
     });
 
     // ---- Presets ----

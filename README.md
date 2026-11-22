@@ -31,12 +31,12 @@ Open `index.html` in a modern browser, or host on GitHub Pages / Netlify / any s
 | **Compress** | Rasterizes each page (with your rotation + Letter size) as JPEG. Much smaller for scans and image-heavy PDFs. Text becomes non-selectable. |
 
 ### Compression presets
-| Preset       | Approx. DPI | Notes                 |
-|--------------|-------------|-----------------------|
-| High         | ~115        | Best readability      |
-| Balanced     | ~90         | Good all-rounder      |
-| Small        | ~70         | Strong size reduction |
-| Super Small  | ~50         | Maximum shrink        |
+| Preset       | DPI | Notes                      |
+|--------------|-----|----------------------------|
+| High         | 300 | Print-quality / sharp text |
+| Balanced     | 150 | Good screen + light print  |
+| Small        | 100 | Solid size reduction       |
+| Super Small  | 70  | Maximum shrink             |
 
 ## Deploy to GitHub Pages
 
