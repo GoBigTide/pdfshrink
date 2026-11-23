@@ -301,6 +301,7 @@
   <div class="editor" id="editor">
     <div class="editor-bar">
       <div class="tool-group">
+        <button class="tool-btn" data-tool="select" title="Select / move">Select</button>
         <button class="tool-btn active" data-tool="pen" title="Pen">Pen</button>
         <button class="tool-btn" data-tool="highlight" title="Highlighter">Highlight</button>
         <button class="tool-btn" data-tool="text" title="Text">Text</button>
@@ -310,8 +311,13 @@
       </div>
       <div class="sep"></div>
       <label class="color-lab">Color <input type="color" id="annColor" value="#e11d48" /></label>
+      <label class="color-lab" id="sizeLab">Size
+        <input type="range" id="annSize" min="1" max="10" value="3" style="width:80px;accent-color:var(--accent)" />
+        <span id="annSizeVal" style="color:var(--accent);min-width:1.5em">3</span>
+      </label>
       <div class="sep"></div>
       <div class="tool-group">
+        <button class="tool-btn" id="deleteSelBtn" title="Delete selected">Delete</button>
         <button class="tool-btn" id="undoBtn" title="Undo">Undo</button>
         <button class="tool-btn" id="clearAnnBtn" title="Clear page marks">Clear marks</button>
       </div>
@@ -353,8 +359,13 @@
     let drawing = false;
     let currentStroke = null;
     let shapeStart = null;
+    let selectedIdx = -1;
+    let moving = false;
+    let moveLast = null;
     /** canvas pixel size of editor page */
     let editW = 0, editH = 0;
+    /** pen/text size slider 1–10 */
+    let annSizeLevel = 3;
 
     // ---- DOM ----
     const dropZone = document.getElementById('dropZone');
@@ -635,9 +646,68 @@
       annCtx.clearRect(0, 0, editW, editH);
       if (!editItem) return;
       drawAnnotationsOnCtx(annCtx, editItem.annotations, editW, editH);
-      // live preview stroke
       if (currentStroke) drawAnnotationsOnCtx(annCtx, [currentStroke], editW, editH);
-      if (shapeStart && currentStroke) drawAnnotationsOnCtx(annCtx, [currentStroke], editW, editH);
+      // Selection outline
+      if (selectedIdx >= 0 && editItem.annotations[selectedIdx]) {
+        const box = annBounds(editItem.annotations[selectedIdx]);
+        if (box) {
+          annCtx.save();
+          annCtx.strokeStyle = '#7c9cff';
+          annCtx.lineWidth = 2;
+          annCtx.setLineDash([6, 4]);
+          annCtx.strokeRect(box.x * editW - 4, box.y * editH - 4, box.w * editW + 8, box.h * editH + 8);
+          annCtx.restore();
+        }
+      }
+    }
+
+    function annBounds(a) {
+      if (!a) return null;
+      if (a.type === 'pen' || a.type === 'highlight') {
+        if (!a.points?.length) return null;
+        let minX = 1, minY = 1, maxX = 0, maxY = 0;
+        for (const [px, py] of a.points) {
+          minX = Math.min(minX, px); minY = Math.min(minY, py);
+          maxX = Math.max(maxX, px); maxY = Math.max(maxY, py);
+        }
+        return { x: minX, y: minY, w: Math.max(0.01, maxX - minX), h: Math.max(0.01, maxY - minY) };
+      }
+      if (a.type === 'rect' || a.type === 'redact') return { x: a.x, y: a.y, w: a.w, h: a.h };
+      if (a.type === 'arrow') {
+        const minX = Math.min(a.x1, a.x2), minY = Math.min(a.y1, a.y2);
+        const maxX = Math.max(a.x1, a.x2), maxY = Math.max(a.y1, a.y2);
+        return { x: minX, y: minY, w: Math.max(0.01, maxX - minX), h: Math.max(0.01, maxY - minY) };
+      }
+      if (a.type === 'text') {
+        const tw = Math.min(0.5, (a.text || '').length * (a.size || 0.035) * 0.5);
+        const th = (a.size || 0.035) * 1.2;
+        return { x: a.x, y: a.y, w: tw, h: th };
+      }
+      return null;
+    }
+
+    function hitTest(nx, ny) {
+      if (!editItem) return -1;
+      // Top-most first
+      for (let i = editItem.annotations.length - 1; i >= 0; i--) {
+        const b = annBounds(editItem.annotations[i]);
+        if (!b) continue;
+        const pad = 0.015;
+        if (nx >= b.x - pad && nx <= b.x + b.w + pad && ny >= b.y - pad && ny <= b.y + b.h + pad) {
+          return i;
+        }
+      }
+      return -1;
+    }
+
+    function moveAnnotation(a, dx, dy) {
+      if (a.type === 'pen' || a.type === 'highlight') {
+        a.points = a.points.map(([x, y]) => [x + dx, y + dy]);
+      } else if (a.type === 'rect' || a.type === 'redact' || a.type === 'text') {
+        a.x += dx; a.y += dy;
+      } else if (a.type === 'arrow') {
+        a.x1 += dx; a.y1 += dy; a.x2 += dx; a.y2 += dy;
+      }
     }
 
     function normPos(e) {
@@ -645,6 +715,17 @@
       const x = (e.clientX - rect.left) / rect.width;
       const y = (e.clientY - rect.top) / rect.height;
       return [Math.max(0, Math.min(1, x)), Math.max(0, Math.min(1, y))];
+    }
+
+    function sizeToPenWidth(level) {
+      // level 1–10 → normalized stroke width
+      return 0.003 + (level / 10) * 0.022;
+    }
+    function sizeToTextSize(level) {
+      return 0.018 + (level / 10) * 0.05;
+    }
+    function sizeToHighlightWidth(level) {
+      return 0.015 + (level / 10) * 0.04;
     }
 
     async function openEditor(pageItem, displayNum) {
@@ -679,7 +760,6 @@
 
     function closeEditor() {
       editor.classList.remove('visible');
-      // Refresh thumbnail with annotations
       if (editItem) {
         editItem.thumbCanvas = null;
         renderThumbnail(editItem).then(() => renderPageGrid());
@@ -688,6 +768,9 @@
       currentStroke = null;
       shapeStart = null;
       drawing = false;
+      selectedIdx = -1;
+      moving = false;
+      moveLast = null;
     }
 
     document.getElementById('editorClose').addEventListener('click', closeEditor);
@@ -700,14 +783,49 @@
         document.querySelectorAll('.tool-btn[data-tool]').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         tool = btn.dataset.tool;
-        editorHint.textContent = `Page ${editDisplayNum} · tool: ${tool}` +
-          (tool === 'text' ? ' · click to place text' : '');
+        selectedIdx = -1;
+        moving = false;
+        redrawAnnLayer();
+        const hints = {
+          select: 'click a mark to select · drag to move · Delete key removes',
+          pen: 'draw freehand',
+          highlight: 'draw highlighter strokes',
+          text: 'click to place text',
+          rect: 'drag a rectangle',
+          arrow: 'drag from start to end',
+          redact: 'drag a black redaction bar'
+        };
+        editorHint.textContent = `Page ${editDisplayNum} · ${hints[tool] || tool}`;
+        annCanvas.style.cursor = tool === 'select' ? 'default' : 'crosshair';
       });
+    });
+
+    const annSizeEl = document.getElementById('annSize');
+    const annSizeVal = document.getElementById('annSizeVal');
+    annSizeEl.addEventListener('input', () => {
+      annSizeLevel = parseInt(annSizeEl.value, 10) || 3;
+      annSizeVal.textContent = String(annSizeLevel);
+      // Live-update selected text/pen size
+      if (editItem && selectedIdx >= 0) {
+        const a = editItem.annotations[selectedIdx];
+        if (a.type === 'text') a.size = sizeToTextSize(annSizeLevel);
+        if (a.type === 'pen') a.width = sizeToPenWidth(annSizeLevel);
+        if (a.type === 'highlight') a.width = sizeToHighlightWidth(annSizeLevel);
+        redrawAnnLayer();
+      }
+    });
+
+    document.getElementById('deleteSelBtn').addEventListener('click', () => {
+      if (!editItem || selectedIdx < 0) return;
+      editItem.annotations.splice(selectedIdx, 1);
+      selectedIdx = -1;
+      redrawAnnLayer();
     });
 
     document.getElementById('undoBtn').addEventListener('click', () => {
       if (!editItem || !editItem.annotations.length) return;
       editItem.annotations.pop();
+      selectedIdx = -1;
       redrawAnnLayer();
     });
     document.getElementById('clearAnnBtn').addEventListener('click', () => {
@@ -715,7 +833,20 @@
       if (!editItem.annotations.length) return;
       if (!confirm('Clear all marks on this page?')) return;
       editItem.annotations = [];
+      selectedIdx = -1;
       redrawAnnLayer();
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (!editor.classList.contains('visible')) return;
+      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedIdx >= 0 && editItem) {
+        // Don't steal backspace from text prompts
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+        e.preventDefault();
+        editItem.annotations.splice(selectedIdx, 1);
+        selectedIdx = -1;
+        redrawAnnLayer();
+      }
     });
 
     annCanvas.addEventListener('pointerdown', (e) => {
@@ -725,21 +856,47 @@
       const [x, y] = normPos(e);
       const color = annColor.value || '#e11d48';
 
+      if (tool === 'select') {
+        selectedIdx = hitTest(x, y);
+        if (selectedIdx >= 0) {
+          moving = true;
+          moveLast = [x, y];
+          const a = editItem.annotations[selectedIdx];
+          // Sync size slider to selection
+          if (a.type === 'text') {
+            const lvl = Math.round(((a.size || 0.035) - 0.018) / 0.05 * 10);
+            annSizeEl.value = String(Math.max(1, Math.min(10, lvl)));
+            annSizeLevel = parseInt(annSizeEl.value, 10);
+            annSizeVal.textContent = String(annSizeLevel);
+          } else if (a.type === 'pen' || a.type === 'highlight') {
+            const base = a.type === 'highlight' ? sizeToHighlightWidth : sizeToPenWidth;
+            // approximate reverse not critical
+          }
+        }
+        redrawAnnLayer();
+        return;
+      }
+
       if (tool === 'text') {
         const text = prompt('Text to place:');
         if (text) {
-          editItem.annotations.push({ type: 'text', x, y, text, color, size: 0.035 });
+          editItem.annotations.push({
+            type: 'text', x, y, text, color,
+            size: sizeToTextSize(annSizeLevel)
+          });
+          selectedIdx = editItem.annotations.length - 1;
           redrawAnnLayer();
         }
         return;
       }
 
       drawing = true;
+      selectedIdx = -1;
       if (tool === 'pen' || tool === 'highlight') {
         currentStroke = {
           type: tool,
           color: tool === 'highlight' ? '#fbbf24' : color,
-          width: tool === 'highlight' ? 0.028 : 0.008,
+          width: tool === 'highlight' ? sizeToHighlightWidth(annSizeLevel) : sizeToPenWidth(annSizeLevel),
           points: [[x, y]]
         };
       } else if (tool === 'rect' || tool === 'redact' || tool === 'arrow') {
@@ -751,8 +908,18 @@
     });
 
     annCanvas.addEventListener('pointermove', (e) => {
-      if (!drawing || !currentStroke) return;
       const [x, y] = normPos(e);
+
+      if (tool === 'select' && moving && selectedIdx >= 0 && moveLast) {
+        const dx = x - moveLast[0];
+        const dy = y - moveLast[1];
+        moveAnnotation(editItem.annotations[selectedIdx], dx, dy);
+        moveLast = [x, y];
+        redrawAnnLayer();
+        return;
+      }
+
+      if (!drawing || !currentStroke) return;
       if (tool === 'pen' || tool === 'highlight') {
         currentStroke.points.push([x, y]);
       } else if (tool === 'arrow' && shapeStart) {
@@ -767,19 +934,30 @@
       redrawAnnLayer();
     });
 
-    function endStroke() {
+    function endStroke(e) {
+      if (tool === 'select') {
+        moving = false;
+        moveLast = null;
+        return;
+      }
       if (!drawing) return;
       drawing = false;
       if (currentStroke && editItem) {
-        // Ignore tiny accidental marks
         if (currentStroke.type === 'pen' || currentStroke.type === 'highlight') {
-          if (currentStroke.points.length > 1) editItem.annotations.push(currentStroke);
+          if (currentStroke.points.length > 1) {
+            editItem.annotations.push(currentStroke);
+            selectedIdx = editItem.annotations.length - 1;
+          }
         } else if (currentStroke.type === 'arrow') {
           const dx = currentStroke.x2 - currentStroke.x1;
           const dy = currentStroke.y2 - currentStroke.y1;
-          if (Math.hypot(dx, dy) > 0.01) editItem.annotations.push(currentStroke);
+          if (Math.hypot(dx, dy) > 0.01) {
+            editItem.annotations.push(currentStroke);
+            selectedIdx = editItem.annotations.length - 1;
+          }
         } else if (currentStroke.w > 0.005 && currentStroke.h > 0.005) {
           editItem.annotations.push(currentStroke);
+          selectedIdx = editItem.annotations.length - 1;
         }
       }
       currentStroke = null;
