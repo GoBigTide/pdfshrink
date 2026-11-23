@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>PDF Shrinker — Merge, Reorder, Rotate & Compress</title>
-  <meta name="description" content="Merge, reorder pages, rotate, normalize to Letter size, and compress PDFs entirely in your browser. Files never leave your device." />
+  <title>PDF Shrinker — Merge, Annotate, Compress</title>
+  <meta name="description" content="Reorder, rotate, annotate, and compress PDFs entirely in your browser. Files never leave your device." />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📄</text></svg>" />
   <style>
     :root {
@@ -21,24 +21,16 @@
       --danger: #ff6b6b;
       --radius: 12px;
     }
-
     * { box-sizing: border-box; margin: 0; padding: 0; }
-
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      line-height: 1.5;
-      min-height: 100vh;
-      padding: 20px 14px 48px;
+      background: var(--bg); color: var(--text); line-height: 1.5;
+      min-height: 100vh; padding: 20px 14px 48px;
     }
-
     .container { max-width: 960px; margin: 0 auto; }
-
     header { text-align: center; margin-bottom: 28px; }
     header h1 { font-size: 1.75rem; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 6px; }
     header p { color: var(--muted); font-size: 0.95rem; }
-
     .badge {
       display: inline-flex; align-items: center; gap: 6px;
       background: rgba(61, 214, 140, 0.12); color: var(--success);
@@ -46,7 +38,6 @@
       padding: 4px 12px; border-radius: 999px; margin-top: 10px;
     }
 
-    /* Drop zone */
     .drop-zone {
       border: 2px dashed var(--border); border-radius: var(--radius);
       background: var(--surface); padding: 36px 20px; text-align: center;
@@ -60,7 +51,6 @@
     .drop-zone p { color: var(--muted); font-size: 0.9rem; }
     .drop-zone input { display: none; }
 
-    /* Toolbar */
     .toolbar {
       display: none; flex-wrap: wrap; gap: 10px; align-items: center;
       background: var(--surface); border: 1px solid var(--border);
@@ -76,28 +66,20 @@
       padding: 9px 16px; transition: background 0.15s, opacity 0.15s, border-color 0.15s;
     }
     button:disabled { opacity: 0.45; cursor: not-allowed; }
-
     .btn-primary { background: var(--accent); color: #0f1117; }
     .btn-primary:hover:not(:disabled) { background: var(--accent-hover); }
-
     .btn-secondary {
       background: var(--surface2); color: var(--text); border: 1px solid var(--border);
     }
     .btn-secondary:hover:not(:disabled) { border-color: var(--accent); }
-
     .btn-ghost {
-      background: transparent; color: var(--muted); border: 1px solid transparent;
-      padding: 7px 12px;
+      background: transparent; color: var(--muted); border: 1px solid transparent; padding: 7px 12px;
     }
     .btn-ghost:hover:not(:disabled) { color: var(--text); background: var(--surface2); }
-
     .btn-danger-ghost { color: var(--danger); }
     .btn-danger-ghost:hover:not(:disabled) { background: rgba(255,107,107,0.12); }
 
-    /* Presets */
-    .presets {
-      display: none; gap: 8px; margin-bottom: 16px; flex-wrap: wrap;
-    }
+    .presets { display: none; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
     .presets.visible { display: flex; }
     .preset {
       background: var(--surface); border: 1px solid var(--border);
@@ -109,13 +91,11 @@
     .preset .label { font-weight: 600; font-size: 0.88rem; }
     .preset .desc { font-size: 0.72rem; color: var(--muted); margin-top: 2px; }
 
-    /* Page grid */
     .page-grid {
       display: none; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
       gap: 12px; margin-bottom: 20px;
     }
     .page-grid.visible { display: grid; }
-
     .page-card {
       background: var(--surface); border: 1px solid var(--border);
       border-radius: 10px; padding: 8px; cursor: grab; position: relative;
@@ -125,35 +105,29 @@
     .page-card:active { cursor: grabbing; }
     .page-card.dragging { opacity: 0.4; }
     .page-card.drag-over { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(124,156,255,0.3); }
-
     .page-card .thumb-wrap {
       position: relative; width: 100%; aspect-ratio: 8.5 / 11;
       background: #fff; border-radius: 4px; overflow: hidden;
       display: flex; align-items: center; justify-content: center;
     }
-    .page-card canvas {
-      max-width: 100%; max-height: 100%; display: block;
-    }
-    .page-card .thumb-loading {
-      color: #999; font-size: 0.75rem;
-    }
-
+    .page-card canvas { max-width: 100%; max-height: 100%; display: block; }
+    .page-card .thumb-loading { color: #999; font-size: 0.75rem; }
     .page-card .meta {
       display: flex; justify-content: space-between; align-items: center;
       margin-top: 6px; font-size: 0.72rem; color: var(--muted);
     }
     .page-card .page-num { font-weight: 600; color: var(--text); }
-
-    .page-card .actions {
-      display: flex; gap: 4px; margin-top: 6px;
+    .page-card .ann-dot {
+      width: 8px; height: 8px; border-radius: 50%; background: var(--accent);
+      display: inline-block; margin-left: 4px;
     }
+    .page-card .actions { display: flex; gap: 4px; margin-top: 6px; }
     .page-card .actions button {
       flex: 1; padding: 5px 0; font-size: 0.75rem;
       background: var(--surface2); color: var(--text); border: 1px solid var(--border);
       border-radius: 6px;
     }
     .page-card .actions button:hover { border-color: var(--accent); }
-
     .page-card .remove-page {
       position: absolute; top: 6px; right: 6px; z-index: 5;
       width: 26px; height: 26px; border-radius: 50%;
@@ -163,39 +137,9 @@
       box-shadow: 0 1px 4px rgba(0,0,0,0.4);
     }
     .page-card .remove-page:hover {
-      background: var(--danger);
-      border-color: var(--danger);
-      transform: scale(1.08);
+      background: var(--danger); border-color: var(--danger); transform: scale(1.08);
     }
 
-    /* Lightbox */
-    .lightbox {
-      display: none; position: fixed; inset: 0; z-index: 1000;
-      background: rgba(0,0,0,0.82); align-items: center; justify-content: center;
-      padding: 24px; cursor: zoom-out;
-    }
-    .lightbox.visible { display: flex; }
-    .lightbox-inner {
-      position: relative; max-width: min(900px, 96vw); max-height: 92vh;
-      background: #111; border-radius: 10px; padding: 12px;
-      box-shadow: 0 12px 48px rgba(0,0,0,0.5); cursor: default;
-    }
-    .lightbox-inner canvas {
-      display: block; max-width: 100%; max-height: calc(92vh - 60px);
-      border-radius: 4px; background: #fff;
-    }
-    .lightbox-close {
-      position: absolute; top: -12px; right: -12px;
-      width: 32px; height: 32px; border-radius: 50%;
-      background: var(--surface2); color: var(--text); border: 1px solid var(--border);
-      font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center;
-    }
-    .lightbox-close:hover { background: var(--danger); border-color: var(--danger); color: #fff; }
-    .lightbox-label {
-      text-align: center; font-size: 0.85rem; color: var(--muted); margin-top: 8px;
-    }
-
-    /* Status / progress */
     .status {
       display: none; background: var(--surface); border: 1px solid var(--border);
       border-radius: var(--radius); padding: 18px; margin-bottom: 20px;
@@ -205,7 +149,6 @@
     .progress-bar { height: 6px; background: var(--surface2); border-radius: 3px; overflow: hidden; }
     .progress-bar .fill { height: 100%; background: var(--accent); width: 0%; transition: width 0.2s; }
 
-    /* Result */
     .result {
       display: none; background: var(--surface); border: 1px solid var(--border);
       border-radius: var(--radius); padding: 24px; text-align: center;
@@ -217,7 +160,6 @@
     .result .saved { font-weight: 600; font-size: 1rem; margin-bottom: 14px; color: var(--success); }
     .result .saved.none { color: var(--warning); }
     .result .note { font-size: 0.82rem; color: var(--muted); margin-bottom: 16px; }
-
     .download-btn {
       display: inline-flex; align-items: center; gap: 8px;
       background: var(--success); color: #0f1117; font-weight: 600;
@@ -225,17 +167,50 @@
     }
     .download-btn:hover { opacity: 0.9; }
 
-    footer {
-      text-align: center; margin-top: 36px; color: var(--muted); font-size: 0.8rem;
-    }
+    footer { text-align: center; margin-top: 36px; color: var(--muted); font-size: 0.8rem; }
     footer a { color: var(--accent); text-decoration: none; }
 
-    /* Empty helper */
-    .empty-hint { text-align: center; color: var(--muted); font-size: 0.9rem; padding: 20px; }
-
-    @media (max-width: 560px) {
-      .page-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
-      header h1 { font-size: 1.45rem; }
+    /* ===== Editor overlay ===== */
+    .editor {
+      display: none; position: fixed; inset: 0; z-index: 1000;
+      background: rgba(0,0,0,0.88); flex-direction: column;
+    }
+    .editor.visible { display: flex; }
+    .editor-bar {
+      display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+      padding: 10px 14px; background: var(--surface); border-bottom: 1px solid var(--border);
+    }
+    .editor-bar .tool-group { display: flex; gap: 4px; flex-wrap: wrap; align-items: center; }
+    .editor-bar .sep { width: 1px; height: 24px; background: var(--border); margin: 0 4px; }
+    .tool-btn {
+      padding: 7px 11px; font-size: 0.8rem; font-weight: 600;
+      background: var(--surface2); color: var(--text); border: 1px solid var(--border);
+      border-radius: 6px;
+    }
+    .tool-btn:hover { border-color: var(--accent); }
+    .tool-btn.active { background: rgba(124,156,255,0.18); border-color: var(--accent); color: var(--accent); }
+    .editor-bar label.color-lab { font-size: 0.75rem; color: var(--muted); display: flex; align-items: center; gap: 4px; }
+    .editor-bar input[type="color"] {
+      width: 28px; height: 28px; border: 1px solid var(--border); border-radius: 4px;
+      background: none; padding: 0; cursor: pointer;
+    }
+    .editor-stage {
+      flex: 1; overflow: auto; display: flex; align-items: center; justify-content: center;
+      padding: 20px; position: relative;
+    }
+    .editor-canvas-wrap {
+      position: relative; box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+      line-height: 0; background: #fff;
+    }
+    .editor-canvas-wrap canvas { display: block; }
+    .editor-canvas-wrap .ann-layer {
+      position: absolute; left: 0; top: 0; width: 100%; height: 100%;
+      cursor: crosshair;
+    }
+    .editor-hint {
+      position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%);
+      background: rgba(0,0,0,0.7); color: #ccc; font-size: 0.78rem;
+      padding: 6px 12px; border-radius: 999px; pointer-events: none;
     }
   </style>
 </head>
@@ -243,7 +218,7 @@
   <div class="container">
     <header>
       <h1>PDF Shrinker</h1>
-      <p>Reorder pages · Rotate · Normalize to Letter · Compress</p>
+      <p>Reorder · Rotate · Annotate · Letter · Compress</p>
       <div class="badge">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
         100% client-side · files never leave your device
@@ -315,20 +290,41 @@
       </div>
     </div>
 
-    <!-- Lightbox for enlarged page preview -->
-    <div class="lightbox" id="lightbox">
-      <div class="lightbox-inner" id="lightboxInner">
-        <button class="lightbox-close" id="lightboxClose" title="Close">×</button>
-        <div id="lightboxCanvasWrap"></div>
-        <div class="lightbox-label" id="lightboxLabel"></div>
-      </div>
-    </div>
-
     <footer>
       Built with <a href="https://github.com/Hopding/pdf-lib" target="_blank" rel="noopener">pdf-lib</a>
       &amp; <a href="https://mozilla.github.io/pdf.js/" target="_blank" rel="noopener">PDF.js</a>
       · Pages normalized to US Letter · Open source
     </footer>
+  </div>
+
+  <!-- Annotation editor -->
+  <div class="editor" id="editor">
+    <div class="editor-bar">
+      <div class="tool-group">
+        <button class="tool-btn active" data-tool="pen" title="Pen">Pen</button>
+        <button class="tool-btn" data-tool="highlight" title="Highlighter">Highlight</button>
+        <button class="tool-btn" data-tool="text" title="Text">Text</button>
+        <button class="tool-btn" data-tool="rect" title="Rectangle">Rect</button>
+        <button class="tool-btn" data-tool="arrow" title="Arrow">Arrow</button>
+        <button class="tool-btn" data-tool="redact" title="Redact">Redact</button>
+      </div>
+      <div class="sep"></div>
+      <label class="color-lab">Color <input type="color" id="annColor" value="#e11d48" /></label>
+      <div class="sep"></div>
+      <div class="tool-group">
+        <button class="tool-btn" id="undoBtn" title="Undo">Undo</button>
+        <button class="tool-btn" id="clearAnnBtn" title="Clear page marks">Clear marks</button>
+      </div>
+      <div style="flex:1"></div>
+      <button class="btn-secondary" id="editorClose">Done</button>
+    </div>
+    <div class="editor-stage" id="editorStage">
+      <div class="editor-canvas-wrap" id="editorWrap">
+        <canvas id="pageCanvas"></canvas>
+        <canvas class="ann-layer" id="annCanvas"></canvas>
+      </div>
+      <div class="editor-hint" id="editorHint">Draw on the page · double-click a thumbnail to edit</div>
+    </div>
   </div>
 
   <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
@@ -337,21 +333,28 @@
     pdfjsLib.GlobalWorkerOptions.workerSrc =
       'https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
 
-    const { PDFDocument, degrees, rgb } = PDFLib;
-
-    // US Letter in PDF points (1 pt = 1/72 in)
-    const LETTER_W = 612;
-    const LETTER_H = 792;
+    const { PDFDocument, degrees, rgb, StandardFonts } = PDFLib;
+    const LETTER_W = 612, LETTER_H = 792;
 
     // ---- State ----
-    /** @type {{id:string, sourceFile:File, sourceName:string, pageIndex:number, rotation:number, thumbCanvas?:HTMLCanvasElement}[]} */
+    /** @type {Array<{id:string,sourceFile:File,sourceName:string,pageIndex:number,rotation:number,pdfRef:any,thumbCanvas:any,annotations:any[]}>} */
     let pages = [];
     let activePreset = { scale: 4.17, quality: 0.85 };
-    let addingLock = false;
     let dragSrcId = null;
     let originalTotalBytes = 0;
     let resultBlob = null;
     let resultFilename = 'output.pdf';
+    let addingLock = false;
+
+    // Editor state
+    let editItem = null;
+    let editDisplayNum = 0;
+    let tool = 'pen';
+    let drawing = false;
+    let currentStroke = null;
+    let shapeStart = null;
+    /** canvas pixel size of editor page */
+    let editW = 0, editH = 0;
 
     // ---- DOM ----
     const dropZone = document.getElementById('dropZone');
@@ -371,22 +374,25 @@
     const addMoreBtn = document.getElementById('addMoreBtn');
     const clearBtn = document.getElementById('clearBtn');
 
-    // ---- Helpers ----
-    function uid() { return Math.random().toString(36).slice(2, 10); }
+    const editor = document.getElementById('editor');
+    const pageCanvas = document.getElementById('pageCanvas');
+    const annCanvas = document.getElementById('annCanvas');
+    const annCtx = annCanvas.getContext('2d');
+    const editorHint = document.getElementById('editorHint');
+    const annColor = document.getElementById('annColor');
 
+    function uid() { return Math.random().toString(36).slice(2, 10); }
     function formatBytes(b) {
       if (b < 1024) return b + ' B';
       if (b < 1048576) return (b / 1024).toFixed(1) + ' KB';
       return (b / 1048576).toFixed(2) + ' MB';
     }
-
     function showStatus(msg, pct = 0) {
       statusEl.classList.add('visible');
       resultEl.classList.remove('visible');
       statusText.textContent = msg;
       progressFill.style.width = Math.round(pct * 100) + '%';
     }
-
     function hideStatus() { statusEl.classList.remove('visible'); }
 
     function updateToolbar() {
@@ -395,44 +401,38 @@
       presetsEl.classList.toggle('visible', n > 0);
       pageGrid.classList.toggle('visible', n > 0);
       dropZone.style.display = n > 0 ? 'none' : 'block';
-
       toolbarInfo.innerHTML = n
-        ? `<strong>${n}</strong> page${n === 1 ? '' : 's'} · will be normalized to <strong>US Letter</strong>`
+        ? `<strong>${n}</strong> page${n === 1 ? '' : 's'} · Letter · double-click to annotate`
         : '';
     }
 
     // ---- File intake ----
     async function addFiles(fileList) {
-      // Prevent double-firing from drop zone + window handlers
       if (addingLock) return;
       const pdfFiles = Array.from(fileList).filter(f =>
         f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf')
       );
       if (!pdfFiles.length) return;
-
       addingLock = true;
       try {
         showStatus('Reading PDFs…', 0.05);
         originalTotalBytes += pdfFiles.reduce((s, f) => s + f.size, 0);
-
         let done = 0;
         for (const file of pdfFiles) {
           try {
             const data = new Uint8Array(await file.arrayBuffer());
             const pdf = await pdfjsLib.getDocument({ data }).promise;
-            const numPages = pdf.numPages;
-
-            for (let i = 1; i <= numPages; i++) {
-              const pageItem = {
+            for (let i = 1; i <= pdf.numPages; i++) {
+              pages.push({
                 id: uid(),
                 sourceFile: file,
                 sourceName: file.name,
-                pageIndex: i,          // 1-based for pdf.js
-                rotation: 0,           // 0, 90, 180, 270
-                pdfRef: pdf,           // keep reference for later rendering
-                thumbCanvas: null
-              };
-              pages.push(pageItem);
+                pageIndex: i,
+                rotation: 0,
+                pdfRef: pdf,
+                thumbCanvas: null,
+                annotations: []
+              });
             }
           } catch (err) {
             console.error('Failed to load', file.name, err);
@@ -440,24 +440,19 @@
           done++;
           showStatus(`Loading ${done}/${pdfFiles.length}…`, 0.1 + 0.3 * (done / pdfFiles.length));
         }
-
         updateToolbar();
         await renderAllThumbnails();
         hideStatus();
       } finally {
-        // Small delay so a second event in the same drop gesture is ignored
         setTimeout(() => { addingLock = false; }, 300);
       }
     }
 
-    // ---- Thumbnails ----
     async function renderAllThumbnails() {
       const total = pages.length;
       let i = 0;
       for (const p of pages) {
-        if (!p.thumbCanvas) {
-          await renderThumbnail(p);
-        }
+        if (!p.thumbCanvas) await renderThumbnail(p);
         i++;
         if (i % 3 === 0 || i === total) {
           showStatus(`Generating previews… ${i}/${total}`, 0.4 + 0.55 * (i / total));
@@ -469,13 +464,18 @@
     async function renderThumbnail(pageItem) {
       try {
         const page = await pageItem.pdfRef.getPage(pageItem.pageIndex);
-        // Render at modest resolution for thumbnail
-        const baseViewport = page.getViewport({ scale: 0.35, rotation: pageItem.rotation });
+        const viewport = page.getViewport({ scale: 0.35, rotation: pageItem.rotation });
         const canvas = document.createElement('canvas');
-        canvas.width = Math.floor(baseViewport.width);
-        canvas.height = Math.floor(baseViewport.height);
+        canvas.width = Math.floor(viewport.width);
+        canvas.height = Math.floor(viewport.height);
         const ctx = canvas.getContext('2d');
-        await page.render({ canvasContext: ctx, viewport: baseViewport }).promise;
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        await page.render({ canvasContext: ctx, viewport }).promise;
+        // Draw mini annotations
+        if (pageItem.annotations?.length) {
+          drawAnnotationsOnCtx(ctx, pageItem.annotations, canvas.width, canvas.height);
+        }
         pageItem.thumbCanvas = canvas;
       } catch (err) {
         console.error('Thumb error', err);
@@ -489,44 +489,35 @@
         card.className = 'page-card';
         card.draggable = true;
         card.dataset.id = p.id;
-
-        const thumbHtml = p.thumbCanvas
-          ? '' // we'll append the canvas
-          : '<div class="thumb-loading">…</div>';
-
+        const hasAnn = p.annotations && p.annotations.length > 0;
         card.innerHTML = `
           <button class="remove-page" title="Remove page" data-id="${p.id}">×</button>
           <div class="thumb-wrap"></div>
           <div class="meta">
-            <span class="page-num">#${idx + 1}</span>
+            <span class="page-num">#${idx + 1}${hasAnn ? '<span class="ann-dot" title="Has annotations"></span>' : ''}</span>
             <span>${p.rotation ? p.rotation + '°' : ''}</span>
           </div>
           <div class="actions">
             <button data-action="rot-ccw" data-id="${p.id}" title="Rotate left">↺</button>
+            <button data-action="edit" data-id="${p.id}" title="Annotate">Edit</button>
             <button data-action="rot-cw" data-id="${p.id}" title="Rotate right">↻</button>
           </div>
         `;
-
         const wrap = card.querySelector('.thumb-wrap');
         if (p.thumbCanvas) {
-          // Clone so the same canvas isn't moved around the DOM
           const clone = p.thumbCanvas.cloneNode(true);
-          const ctx = clone.getContext('2d');
-          ctx.drawImage(p.thumbCanvas, 0, 0);
+          clone.getContext('2d').drawImage(p.thumbCanvas, 0, 0);
           wrap.appendChild(clone);
         } else {
           wrap.innerHTML = '<div class="thumb-loading">…</div>';
         }
-
-        // Double-click thumbnail to enlarge
         wrap.style.cursor = 'zoom-in';
-        wrap.title = 'Double-click to enlarge';
+        wrap.title = 'Double-click to annotate';
         wrap.addEventListener('dblclick', (e) => {
           e.stopPropagation();
-          openLightbox(p, idx + 1);
+          openEditor(p, idx + 1);
         });
 
-        // Drag events
         card.addEventListener('dragstart', (e) => {
           dragSrcId = p.id;
           card.classList.add('dragging');
@@ -554,11 +545,9 @@
           pages.splice(to, 0, moved);
           renderPageGrid();
         });
-
         pageGrid.appendChild(card);
       });
 
-      // Button handlers (delegated-ish)
       pageGrid.querySelectorAll('[data-action]').forEach(btn => {
         btn.addEventListener('click', async (e) => {
           e.stopPropagation();
@@ -566,17 +555,17 @@
           const action = btn.dataset.action;
           const item = pages.find(x => x.id === id);
           if (!item) return;
-
+          if (action === 'edit') {
+            openEditor(item, pages.indexOf(item) + 1);
+            return;
+          }
           if (action === 'rot-cw') item.rotation = (item.rotation + 90) % 360;
           if (action === 'rot-ccw') item.rotation = (item.rotation + 270) % 360;
-
-          // Re-render thumbnail with new rotation
           item.thumbCanvas = null;
           await renderThumbnail(item);
           renderPageGrid();
         });
       });
-
       pageGrid.querySelectorAll('.remove-page').forEach(btn => {
         btn.addEventListener('click', (e) => {
           e.stopPropagation();
@@ -587,63 +576,303 @@
       });
     }
 
-    // ---- Lightbox ----
-    const lightbox = document.getElementById('lightbox');
-    const lightboxInner = document.getElementById('lightboxInner');
-    const lightboxCanvasWrap = document.getElementById('lightboxCanvasWrap');
-    const lightboxLabel = document.getElementById('lightboxLabel');
-    const lightboxClose = document.getElementById('lightboxClose');
-
-    async function openLightbox(pageItem, displayNum) {
-      lightboxCanvasWrap.innerHTML = '<div style="color:#999;padding:40px;text-align:center">Loading…</div>';
-      lightboxLabel.textContent = `Page ${displayNum}` + (pageItem.rotation ? ` · ${pageItem.rotation}°` : '');
-      lightbox.classList.add('visible');
-
-      try {
-        const page = await pageItem.pdfRef.getPage(pageItem.pageIndex);
-        // Higher-res preview
-        const viewport = page.getViewport({ scale: 1.4, rotation: pageItem.rotation });
-        const canvas = document.createElement('canvas');
-        canvas.width = Math.floor(viewport.width);
-        canvas.height = Math.floor(viewport.height);
-        const ctx = canvas.getContext('2d');
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        await page.render({ canvasContext: ctx, viewport }).promise;
-
-        lightboxCanvasWrap.innerHTML = '';
-        lightboxCanvasWrap.appendChild(canvas);
-      } catch (err) {
-        console.error(err);
-        lightboxCanvasWrap.innerHTML = '<div style="color:#f66;padding:40px">Failed to load preview</div>';
+    // ---- Annotation drawing (normalized 0–1 coords) ----
+    function drawAnnotationsOnCtx(ctx, anns, w, h) {
+      for (const a of anns) {
+        if (a.type === 'pen' || a.type === 'highlight') {
+          if (!a.points || a.points.length < 2) continue;
+          ctx.save();
+          ctx.beginPath();
+          ctx.lineCap = 'round';
+          ctx.lineJoin = 'round';
+          ctx.strokeStyle = a.color || '#e11d48';
+          ctx.globalAlpha = a.type === 'highlight' ? 0.35 : 1;
+          ctx.lineWidth = (a.width || (a.type === 'highlight' ? 0.025 : 0.008)) * Math.min(w, h);
+          ctx.moveTo(a.points[0][0] * w, a.points[0][1] * h);
+          for (let i = 1; i < a.points.length; i++) {
+            ctx.lineTo(a.points[i][0] * w, a.points[i][1] * h);
+          }
+          ctx.stroke();
+          ctx.restore();
+        } else if (a.type === 'rect' || a.type === 'redact') {
+          const x = a.x * w, y = a.y * h, rw = a.w * w, rh = a.h * h;
+          if (a.type === 'redact') {
+            ctx.fillStyle = '#000';
+            ctx.fillRect(x, y, rw, rh);
+          } else {
+            ctx.strokeStyle = a.color || '#e11d48';
+            ctx.lineWidth = 0.006 * Math.min(w, h);
+            ctx.strokeRect(x, y, rw, rh);
+          }
+        } else if (a.type === 'arrow') {
+          const x1 = a.x1 * w, y1 = a.y1 * h, x2 = a.x2 * w, y2 = a.y2 * h;
+          ctx.strokeStyle = a.color || '#e11d48';
+          ctx.fillStyle = a.color || '#e11d48';
+          ctx.lineWidth = 0.008 * Math.min(w, h);
+          ctx.beginPath();
+          ctx.moveTo(x1, y1);
+          ctx.lineTo(x2, y2);
+          ctx.stroke();
+          const ang = Math.atan2(y2 - y1, x2 - x1);
+          const head = 0.025 * Math.min(w, h);
+          ctx.beginPath();
+          ctx.moveTo(x2, y2);
+          ctx.lineTo(x2 - head * Math.cos(ang - 0.4), y2 - head * Math.sin(ang - 0.4));
+          ctx.lineTo(x2 - head * Math.cos(ang + 0.4), y2 - head * Math.sin(ang + 0.4));
+          ctx.closePath();
+          ctx.fill();
+        } else if (a.type === 'text') {
+          const fontSize = (a.font || 0.035) * h;
+          ctx.fillStyle = a.color || '#e11d48';
+          ctx.font = `bold ${fontSize}px sans-serif`;
+          ctx.textBaseline = 'top';
+          ctx.fillText(a.text || '', a.x * w, a.y * h);
+        }
       }
     }
 
-    function closeLightbox() {
-      lightbox.classList.remove('visible');
-      lightboxCanvasWrap.innerHTML = '';
+    function redrawAnnLayer() {
+      annCtx.clearRect(0, 0, editW, editH);
+      if (!editItem) return;
+      drawAnnotationsOnCtx(annCtx, editItem.annotations, editW, editH);
+      // live preview stroke
+      if (currentStroke) drawAnnotationsOnCtx(annCtx, [currentStroke], editW, editH);
+      if (shapeStart && currentStroke) drawAnnotationsOnCtx(annCtx, [currentStroke], editW, editH);
     }
 
-    lightboxClose.addEventListener('click', (e) => {
-      e.stopPropagation();
-      closeLightbox();
-    });
-    lightbox.addEventListener('click', (e) => {
-      if (e.target === lightbox) closeLightbox();
-    });
-    lightboxInner.addEventListener('click', (e) => e.stopPropagation());
+    function normPos(e) {
+      const rect = annCanvas.getBoundingClientRect();
+      const x = (e.clientX - rect.left) / rect.width;
+      const y = (e.clientY - rect.top) / rect.height;
+      return [Math.max(0, Math.min(1, x)), Math.max(0, Math.min(1, y))];
+    }
+
+    async function openEditor(pageItem, displayNum) {
+      editItem = pageItem;
+      editDisplayNum = displayNum;
+      if (!editItem.annotations) editItem.annotations = [];
+
+      editor.classList.add('visible');
+      editorHint.textContent = `Page ${displayNum} · tool: ${tool}`;
+
+      const page = await pageItem.pdfRef.getPage(pageItem.pageIndex);
+      const base = page.getViewport({ scale: 1, rotation: pageItem.rotation });
+      // Fit into ~min(900px, window)
+      const maxW = Math.min(900, window.innerWidth - 48);
+      const maxH = Math.min(window.innerHeight - 120, 1100);
+      const s = Math.min(maxW / base.width, maxH / base.height, 2.2);
+      const viewport = page.getViewport({ scale: s, rotation: pageItem.rotation });
+      editW = Math.floor(viewport.width);
+      editH = Math.floor(viewport.height);
+
+      pageCanvas.width = editW;
+      pageCanvas.height = editH;
+      annCanvas.width = editW;
+      annCanvas.height = editH;
+
+      const ctx = pageCanvas.getContext('2d');
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(0, 0, editW, editH);
+      await page.render({ canvasContext: ctx, viewport }).promise;
+      redrawAnnLayer();
+    }
+
+    function closeEditor() {
+      editor.classList.remove('visible');
+      // Refresh thumbnail with annotations
+      if (editItem) {
+        editItem.thumbCanvas = null;
+        renderThumbnail(editItem).then(() => renderPageGrid());
+      }
+      editItem = null;
+      currentStroke = null;
+      shapeStart = null;
+      drawing = false;
+    }
+
+    document.getElementById('editorClose').addEventListener('click', closeEditor);
     document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && lightbox.classList.contains('visible')) closeLightbox();
+      if (e.key === 'Escape' && editor.classList.contains('visible')) closeEditor();
     });
 
+    document.querySelectorAll('.tool-btn[data-tool]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tool-btn[data-tool]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        tool = btn.dataset.tool;
+        editorHint.textContent = `Page ${editDisplayNum} · tool: ${tool}` +
+          (tool === 'text' ? ' · click to place text' : '');
+      });
+    });
 
-    // ---- Build final PDF ----
+    document.getElementById('undoBtn').addEventListener('click', () => {
+      if (!editItem || !editItem.annotations.length) return;
+      editItem.annotations.pop();
+      redrawAnnLayer();
+    });
+    document.getElementById('clearAnnBtn').addEventListener('click', () => {
+      if (!editItem) return;
+      if (!editItem.annotations.length) return;
+      if (!confirm('Clear all marks on this page?')) return;
+      editItem.annotations = [];
+      redrawAnnLayer();
+    });
 
-    /** Merge-only: copy pages with rotation + scale/center onto Letter */
+    annCanvas.addEventListener('pointerdown', (e) => {
+      if (!editItem) return;
+      e.preventDefault();
+      annCanvas.setPointerCapture(e.pointerId);
+      const [x, y] = normPos(e);
+      const color = annColor.value || '#e11d48';
+
+      if (tool === 'text') {
+        const text = prompt('Text to place:');
+        if (text) {
+          editItem.annotations.push({ type: 'text', x, y, text, color, size: 0.035 });
+          redrawAnnLayer();
+        }
+        return;
+      }
+
+      drawing = true;
+      if (tool === 'pen' || tool === 'highlight') {
+        currentStroke = {
+          type: tool,
+          color: tool === 'highlight' ? '#fbbf24' : color,
+          width: tool === 'highlight' ? 0.028 : 0.008,
+          points: [[x, y]]
+        };
+      } else if (tool === 'rect' || tool === 'redact' || tool === 'arrow') {
+        shapeStart = [x, y];
+        currentStroke = tool === 'arrow'
+          ? { type: 'arrow', x1: x, y1: y, x2: x, y2: y, color }
+          : { type: tool, x, y, w: 0, h: 0, color };
+      }
+    });
+
+    annCanvas.addEventListener('pointermove', (e) => {
+      if (!drawing || !currentStroke) return;
+      const [x, y] = normPos(e);
+      if (tool === 'pen' || tool === 'highlight') {
+        currentStroke.points.push([x, y]);
+      } else if (tool === 'arrow' && shapeStart) {
+        currentStroke.x2 = x;
+        currentStroke.y2 = y;
+      } else if ((tool === 'rect' || tool === 'redact') && shapeStart) {
+        currentStroke.x = Math.min(shapeStart[0], x);
+        currentStroke.y = Math.min(shapeStart[1], y);
+        currentStroke.w = Math.abs(x - shapeStart[0]);
+        currentStroke.h = Math.abs(y - shapeStart[1]);
+      }
+      redrawAnnLayer();
+    });
+
+    function endStroke() {
+      if (!drawing) return;
+      drawing = false;
+      if (currentStroke && editItem) {
+        // Ignore tiny accidental marks
+        if (currentStroke.type === 'pen' || currentStroke.type === 'highlight') {
+          if (currentStroke.points.length > 1) editItem.annotations.push(currentStroke);
+        } else if (currentStroke.type === 'arrow') {
+          const dx = currentStroke.x2 - currentStroke.x1;
+          const dy = currentStroke.y2 - currentStroke.y1;
+          if (Math.hypot(dx, dy) > 0.01) editItem.annotations.push(currentStroke);
+        } else if (currentStroke.w > 0.005 && currentStroke.h > 0.005) {
+          editItem.annotations.push(currentStroke);
+        }
+      }
+      currentStroke = null;
+      shapeStart = null;
+      redrawAnnLayer();
+    }
+    annCanvas.addEventListener('pointerup', endStroke);
+    annCanvas.addEventListener('pointercancel', endStroke);
+
+    // ---- Export helpers: apply annotations onto Letter canvas / pdf-lib page ----
+    function annotationsToPdfLib(page, anns, font) {
+      // page is Letter-sized; anns are normalized 0-1 over the full Letter page
+      for (const a of anns) {
+        if (a.type === 'pen' || a.type === 'highlight') {
+          if (!a.points || a.points.length < 2) continue;
+          const thickness = (a.width || 0.008) * Math.min(LETTER_W, LETTER_H);
+          // Draw as series of small lines
+          for (let i = 1; i < a.points.length; i++) {
+            const x1 = a.points[i - 1][0] * LETTER_W;
+            const y1 = (1 - a.points[i - 1][1]) * LETTER_H;
+            const x2 = a.points[i][0] * LETTER_W;
+            const y2 = (1 - a.points[i][1]) * LETTER_H;
+            const c = hexToRgb(a.color || '#e11d48');
+            page.drawLine({
+              start: { x: x1, y: y1 },
+              end: { x: x2, y: y2 },
+              thickness,
+              color: rgb(c[0], c[1], c[2]),
+              opacity: a.type === 'highlight' ? 0.35 : 1,
+              lineCap: 1
+            });
+          }
+        } else if (a.type === 'rect' || a.type === 'redact') {
+          const x = a.x * LETTER_W;
+          const y = (1 - a.y - a.h) * LETTER_H;
+          const w = a.w * LETTER_W;
+          const h = a.h * LETTER_H;
+          if (a.type === 'redact') {
+            page.drawRectangle({ x, y, width: w, height: h, color: rgb(0, 0, 0) });
+          } else {
+            const c = hexToRgb(a.color || '#e11d48');
+            page.drawRectangle({
+              x, y, width: w, height: h,
+              borderColor: rgb(c[0], c[1], c[2]),
+              borderWidth: 1.5
+            });
+          }
+        } else if (a.type === 'arrow') {
+          const x1 = a.x1 * LETTER_W, y1 = (1 - a.y1) * LETTER_H;
+          const x2 = a.x2 * LETTER_W, y2 = (1 - a.y2) * LETTER_H;
+          const c = hexToRgb(a.color || '#e11d48');
+          const col = rgb(c[0], c[1], c[2]);
+          page.drawLine({
+            start: { x: x1, y: y1 }, end: { x: x2, y: y2 },
+            thickness: 2, color: col, lineCap: 1
+          });
+          // simple arrow head via short lines
+          const ang = Math.atan2(y2 - y1, x2 - x1);
+          const head = 12;
+          page.drawLine({
+            start: { x: x2, y: y2 },
+            end: { x: x2 - head * Math.cos(ang - 0.4), y: y2 - head * Math.sin(ang - 0.4) },
+            thickness: 2, color: col
+          });
+          page.drawLine({
+            start: { x: x2, y: y2 },
+            end: { x: x2 - head * Math.cos(ang + 0.4), y: y2 - head * Math.sin(ang + 0.4) },
+            thickness: 2, color: col
+          });
+        } else if (a.type === 'text') {
+          const c = hexToRgb(a.color || '#e11d48');
+          const size = (a.size || 0.035) * LETTER_H;
+          page.drawText(a.text || '', {
+            x: a.x * LETTER_W,
+            y: (1 - a.y) * LETTER_H - size,
+            size,
+            font,
+            color: rgb(c[0], c[1], c[2])
+          });
+        }
+      }
+    }
+
+    function hexToRgb(hex) {
+      const h = hex.replace('#', '');
+      const n = parseInt(h.length === 3 ? h.split('').map(c => c + c).join('') : h, 16);
+      return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255];
+    }
+
+    // ---- Build PDFs ----
     async function buildLossless() {
       const out = await PDFDocument.create();
-
-      // We need the original pdf-lib documents. Cache them by file.
+      const font = await out.embedFont(StandardFonts.HelveticaBold);
       const libCache = new Map();
 
       for (let i = 0; i < pages.length; i++) {
@@ -658,16 +887,11 @@
         }
 
         const [embedded] = await out.embedPages([srcDoc.getPage(item.pageIndex - 1)]);
-        const ew = embedded.width;
-        const eh = embedded.height;
-
-        // Apply rotation to dimensions
+        const ew = embedded.width, eh = embedded.height;
         const rot = item.rotation;
         const isLandscape = (rot % 180) !== 0;
         const contentW = isLandscape ? eh : ew;
         const contentH = isLandscape ? ew : eh;
-
-        // Scale to fit inside Letter while preserving aspect ratio
         const scale = Math.min(LETTER_W / contentW, LETTER_H / contentH);
         const drawW = contentW * scale;
         const drawH = contentH * scale;
@@ -675,22 +899,25 @@
         const y = (LETTER_H - drawH) / 2;
 
         const newPage = out.addPage([LETTER_W, LETTER_H]);
-        // White background
         newPage.drawRectangle({ x: 0, y: 0, width: LETTER_W, height: LETTER_H, color: rgb(1, 1, 1) });
-
         newPage.drawPage(embedded, {
           x, y,
-          width: isLandscape ? drawH : drawW,   // when rotated 90/270 the visual width/height swap
+          width: isLandscape ? drawH : drawW,
           height: isLandscape ? drawW : drawH,
           rotate: degrees(rot)
         });
-      }
 
+        // Annotations are in full-Letter normalized space (same as editor when page is letterboxed)
+        // Map editor coords: editor showed the rotated page fitted; for simplicity we treat
+        // annotations as relative to the full Letter canvas (matches compress path).
+        if (item.annotations?.length) {
+          annotationsToPdfLib(newPage, item.annotations, font);
+        }
+      }
       showStatus('Saving…', 0.95);
       return await out.save({ useObjectStreams: true });
     }
 
-    /** Compress path: rasterize each (rotated + Letter) page */
     async function buildCompressed() {
       const out = await PDFDocument.create();
       const total = pages.length;
@@ -700,24 +927,17 @@
         showStatus(`Compressing page ${i + 1}/${total}…`, i / total);
 
         const page = await item.pdfRef.getPage(item.pageIndex);
-        // Render at chosen scale, already including rotation
         const viewport = page.getViewport({ scale: activePreset.scale, rotation: item.rotation });
-
         const canvas = document.createElement('canvas');
         canvas.width = Math.floor(viewport.width);
         canvas.height = Math.floor(viewport.height);
         const ctx = canvas.getContext('2d');
-        // White background before render (some PDFs are transparent)
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
-
         await page.render({ canvasContext: ctx, viewport }).promise;
 
-        // Now fit this raster into Letter
-        // We create a Letter-sized canvas and draw the rendered page scaled + centered
         const letterCanvas = document.createElement('canvas');
-        // Render Letter at roughly the same pixel density
-        const pxPerPt = activePreset.scale; // approximate
+        const pxPerPt = activePreset.scale;
         letterCanvas.width = Math.round(LETTER_W * pxPerPt);
         letterCanvas.height = Math.round(LETTER_H * pxPerPt);
         const lctx = letterCanvas.getContext('2d');
@@ -734,14 +954,17 @@
         const dy = (letterCanvas.height - dh) / 2;
         lctx.drawImage(canvas, dx, dy, dw, dh);
 
+        // Burn annotations onto Letter raster
+        if (item.annotations?.length) {
+          drawAnnotationsOnCtx(lctx, item.annotations, letterCanvas.width, letterCanvas.height);
+        }
+
         const blob = await new Promise(r => letterCanvas.toBlob(r, 'image/jpeg', activePreset.quality));
         const imgBytes = new Uint8Array(await blob.arrayBuffer());
         const jpg = await out.embedJpg(imgBytes);
-
         const newPage = out.addPage([LETTER_W, LETTER_H]);
         newPage.drawImage(jpg, { x: 0, y: 0, width: LETTER_W, height: LETTER_H });
       }
-
       showStatus('Saving…', 0.97);
       return await out.save({ useObjectStreams: true });
     }
@@ -756,7 +979,6 @@
       const neu = bytes.length;
       document.getElementById('origSize').textContent = formatBytes(originalTotalBytes);
       document.getElementById('newSize').textContent = formatBytes(neu);
-
       const saved = originalTotalBytes - neu;
       const pct = originalTotalBytes > 0 ? Math.round((saved / originalTotalBytes) * 100) : 0;
       const savedEl = document.getElementById('savedText');
@@ -770,29 +992,30 @@
         savedEl.textContent = 'Size essentially unchanged';
         savedEl.classList.add('none');
       }
-
       document.getElementById('resultNote').textContent = note;
-
       resultBlob = new Blob([bytes], { type: 'application/pdf' });
-      const url = URL.createObjectURL(resultBlob);
-      downloadBtn.href = url;
+      downloadBtn.href = URL.createObjectURL(resultBlob);
       downloadBtn.download = resultFilename;
     }
 
-    // ---- Buttons ----
+    function setBusy(busy) {
+      mergeOnlyBtn.disabled = busy;
+      compressBtn.disabled = busy;
+      addMoreBtn.disabled = busy;
+      clearBtn.disabled = busy;
+    }
+
     mergeOnlyBtn.addEventListener('click', async () => {
       if (!pages.length) return;
       setBusy(true);
       try {
         resultFilename = pages.length > 1 ? 'merged-letter.pdf' : 'normalized-letter.pdf';
         const bytes = await buildLossless();
-        showResult(bytes, 'Pages normalized to US Letter. Original quality kept · text stays selectable.');
+        showResult(bytes, 'Letter size · annotations included · text stays selectable where not covered.');
       } catch (err) {
         console.error(err);
         statusText.textContent = 'Error: ' + (err.message || err);
-      } finally {
-        setBusy(false);
-      }
+      } finally { setBusy(false); }
     });
 
     compressBtn.addEventListener('click', async () => {
@@ -801,21 +1024,12 @@
       try {
         resultFilename = pages.length > 1 ? 'merged-compressed-letter.pdf' : 'compressed-letter.pdf';
         const bytes = await buildCompressed();
-        showResult(bytes, 'Pages normalized to US Letter and compressed. Text is no longer selectable.');
+        showResult(bytes, 'Letter size · compressed · annotations burned in · text not selectable.');
       } catch (err) {
         console.error(err);
         statusText.textContent = 'Error: ' + (err.message || err);
-      } finally {
-        setBusy(false);
-      }
+      } finally { setBusy(false); }
     });
-
-    function setBusy(busy) {
-      mergeOnlyBtn.disabled = busy;
-      compressBtn.disabled = busy;
-      addMoreBtn.disabled = busy;
-      clearBtn.disabled = busy;
-    }
 
     againBtn.addEventListener('click', () => {
       pages = [];
@@ -838,8 +1052,6 @@
     });
 
     addMoreBtn.addEventListener('click', () => fileInput.click());
-
-    // ---- Drop zone & file input ----
     dropZone.addEventListener('click', () => fileInput.click());
     fileInput.addEventListener('change', () => {
       addFiles(fileInput.files);
@@ -849,18 +1061,13 @@
     ['dragenter', 'dragover'].forEach(evt => {
       dropZone.addEventListener(evt, e => { e.preventDefault(); dropZone.classList.add('dragover'); });
     });
-    dropZone.addEventListener('dragleave', e => {
-      e.preventDefault();
-      dropZone.classList.remove('dragover');
-    });
+    dropZone.addEventListener('dragleave', e => { e.preventDefault(); dropZone.classList.remove('dragover'); });
     dropZone.addEventListener('drop', e => {
       e.preventDefault();
       e.stopPropagation();
       dropZone.classList.remove('dragover');
       addFiles(e.dataTransfer.files);
     });
-
-    // Allow dropping anywhere else on the page
     window.addEventListener('dragover', e => e.preventDefault());
     window.addEventListener('drop', e => {
       e.preventDefault();
@@ -869,7 +1076,6 @@
       if (e.dataTransfer?.files?.length) addFiles(e.dataTransfer.files);
     });
 
-    // ---- Presets ----
     document.querySelectorAll('.preset').forEach(el => {
       el.addEventListener('click', () => {
         document.querySelectorAll('.preset').forEach(p => p.classList.remove('active'));
