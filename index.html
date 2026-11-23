@@ -633,7 +633,7 @@
           ctx.closePath();
           ctx.fill();
         } else if (a.type === 'text') {
-          const fontSize = (a.font || 0.035) * h;
+          const fontSize = (a.size || 0.035) * h;
           ctx.fillStyle = a.color || '#e11d48';
           ctx.font = `bold ${fontSize}px sans-serif`;
           ctx.textBaseline = 'top';
