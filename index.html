@@ -815,6 +815,17 @@
       }
     });
 
+    // Recolor the currently selected annotation
+    annColor.addEventListener('input', () => {
+      if (!editItem || selectedIdx < 0) return;
+      const a = editItem.annotations[selectedIdx];
+      if (!a) return;
+      // Redact stays black by design
+      if (a.type === 'redact') return;
+      a.color = annColor.value || '#e11d48';
+      redrawAnnLayer();
+    });
+
     document.getElementById('deleteSelBtn').addEventListener('click', () => {
       if (!editItem || selectedIdx < 0) return;
       editItem.annotations.splice(selectedIdx, 1);
@@ -862,6 +873,10 @@
           moving = true;
           moveLast = [x, y];
           const a = editItem.annotations[selectedIdx];
+          // Sync color picker to selection
+          if (a.color && a.type !== 'redact') {
+            try { annColor.value = a.color; } catch (_) { /* ignore invalid */ }
+          }
           // Sync size slider to selection
           if (a.type === 'text') {
             const lvl = Math.round(((a.size || 0.035) - 0.018) / 0.05 * 10);
@@ -869,8 +884,14 @@
             annSizeLevel = parseInt(annSizeEl.value, 10);
             annSizeVal.textContent = String(annSizeLevel);
           } else if (a.type === 'pen' || a.type === 'highlight') {
-            const base = a.type === 'highlight' ? sizeToHighlightWidth : sizeToPenWidth;
-            // approximate reverse not critical
+            // approximate reverse from width
+            const w = a.width || 0.01;
+            const lvl = a.type === 'highlight'
+              ? Math.round(((w - 0.015) / 0.04) * 10)
+              : Math.round(((w - 0.003) / 0.022) * 10);
+            annSizeEl.value = String(Math.max(1, Math.min(10, lvl)));
+            annSizeLevel = parseInt(annSizeEl.value, 10);
+            annSizeVal.textContent = String(annSizeLevel);
           }
         }
         redrawAnnLayer();
